@@ -1,0 +1,47 @@
+.WindowControls {
+  display: flex;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.Control {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  color: var(--text-muted);
+  transition: var(--transition-colors);
+
+  svg {
+    width: 10px;
+    height: 10px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+  }
+
+  &:hover {
+    background-color: rgb(255 255 255 / 7%);
+    color: var(--text-strong);
+  }
+
+  &:active {
+    background-color: rgb(255 255 255 / 4%);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--accent-line);
+    outline-offset: -2px;
+  }
+
+  &.Close:hover {
+    background-color: var(--danger);
+    color: #fff;
+  }
+
+  &.Close:active {
+    background-color: rgb(from var(--danger) r g b / 80%);
+  }
+}

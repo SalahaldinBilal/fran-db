@@ -1,5 +1,5 @@
 import styles from "./App.module.scss";
-import { For, createMemo, createSignal, onMount } from "solid-js";
+import { For, Show, createMemo, createSignal, onMount } from "solid-js";
 import { Database, House, Settings, X } from "lucide-solid";
 import TabStrip, { TabStripItem } from "./components/TabStrip/TabStrip";
 import Button from "./components/Button/Button";
@@ -17,7 +17,10 @@ import useSavedQueriesState from "./states/savedQueriesState";
 import useSettingsState from "./states/settingsState";
 import useUpdaterState from "./states/updaterState";
 import useToastState from "./states/toastState";
+import useModalState from "./states/modalState";
+import WindowControls from "./components/WindowControls/WindowControls";
 import { installGlobalContextMenu } from "./helpers/globalContextMenu";
+import { IS_MAC } from "./helpers/platform";
 import { safeInvoke } from "./helpers/safeInvoke";
 
 function App() {
@@ -41,6 +44,8 @@ function App() {
       };
     }),
   );
+
+  const titleBarLeading = createMemo(() => (IS_MAC ? <div class={styles.TrafficLights} data-tauri-drag-region /> : undefined));
 
   const sessionIds = createMemo(() =>
     workspace.store.globalTabs.flatMap(tab => (tab.kind === "session" ? [tab.sessionId] : [])),
@@ -77,10 +82,20 @@ function App() {
             { label: "Disconnect", icon: X, onSelect: () => workspace.closeSession(id) },
           ]);
         }}
+        dragRegion
+        locked={useModalState.anyOpen()}
+        leading={titleBarLeading()}
         trailing={
-          <Button icon size="sm" tooltip="Settings" onClick={() => setSettingsOpen(true)}>
-            <Settings size={16} />
-          </Button>
+          <>
+            <div class={styles.Actions} classList={{ [styles.Locked]: useModalState.anyOpen() }}>
+              <Button icon size="sm" tooltip="Settings" onClick={() => setSettingsOpen(true)}>
+                <Settings size={16} />
+              </Button>
+            </div>
+            <Show when={!IS_MAC}>
+              <WindowControls />
+            </Show>
+          </>
         }
       />
       <main class={styles.Content}>

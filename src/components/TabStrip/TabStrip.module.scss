@@ -19,12 +19,26 @@
   }
 }
 
+.Leading,
 .Trailing {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.Trailing {
   gap: 2px;
   padding: 0 6px;
-  flex-shrink: 0;
+}
+
+// Presses go through to the strip behind, which drags the window.
+.Locked .Tab {
+  pointer-events: none;
+}
+
+// Tabs shrink and scroll before this does, so the window always has somewhere to grab.
+.DragSpace {
+  flex: 1 0 48px;
 }
 
 .Tab {
@@ -140,19 +154,22 @@
 // Top-level tabs sit in the window chrome. The active one is a raised tab whose
 // curved feet blend into the panel below, like a browser.
 .global {
-  height: 38px;
-  padding: 6px 8px 0;
+  height: var(--titlebar-height);
   background-color: var(--chrome);
   box-shadow: inset 0 -1px 0 var(--border);
 
   .Tabs {
     gap: 2px;
-    padding: 0 8px;
+    padding: 6px 8px 0 16px;
+  }
+
+  .Leading + .Tabs {
+    padding-left: 8px;
   }
 
   .Trailing {
-    margin-left: auto;
-    padding: 0 0 6px;
+    align-self: stretch;
+    padding: 0;
   }
 
   .Tab {

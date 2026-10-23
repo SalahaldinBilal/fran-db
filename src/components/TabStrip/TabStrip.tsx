@@ -1,5 +1,5 @@
 import styles from "./TabStrip.module.scss";
-import { For, JSX, Show, createEffect, createSignal, on } from "solid-js";
+import { For, JSX, Show, createEffect, createMemo, createSignal, on } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { LucideIcon, X } from "lucide-solid";
 
@@ -27,12 +27,18 @@ export type TabStripProps = {
   onContextMenu?: (event: MouseEvent, id: string) => void,
   onReady?: (api: TabStripApi) => void,
   variant?: "global" | "inner",
+  leading?: JSX.Element,
   trailing?: JSX.Element,
+  /** Empty parts of the strip move the window, and some empty space is always kept before `trailing`. */
+  dragRegion?: boolean,
+  /** Tabs ignore the mouse, so pressing one drags the window instead. */
+  locked?: boolean,
 };
 
 function TabStrip(props: TabStripProps) {
   const tabElements = new Map<string, HTMLElement>();
   const [renaming, setRenaming] = createSignal<string | null>(null);
+  const dragAttribute = createMemo(() => (props.dragRegion ? "" : undefined));
   let scroller!: HTMLDivElement;
 
   createEffect(on(() => props.activeId, id => {
@@ -48,11 +54,19 @@ function TabStrip(props: TabStripProps) {
   }
 
   return (
-    <div class={`${styles.Strip} ${styles[props.variant ?? "inner"]}`}>
+    <div
+      class={`${styles.Strip} ${styles[props.variant ?? "inner"]}`}
+      classList={{ [styles.Locked]: props.locked ?? false }}
+      data-tauri-drag-region={dragAttribute()}
+    >
+      <Show when={props.leading}>
+        <div class={styles.Leading} data-tauri-drag-region={dragAttribute()}>{props.leading}</div>
+      </Show>
       <div
         ref={scroller}
         class={styles.Tabs}
         role="tablist"
+        data-tauri-drag-region={dragAttribute()}
         onWheel={event => {
           if (event.deltaY === 0) return;
           event.preventDefault();
@@ -138,8 +152,11 @@ function TabStrip(props: TabStripProps) {
           )}
         </For>
       </div>
+      <Show when={props.dragRegion}>
+        <div class={styles.DragSpace} data-tauri-drag-region />
+      </Show>
       <Show when={props.trailing}>
-        <div class={styles.Trailing}>{props.trailing}</div>
+        <div class={styles.Trailing} data-tauri-drag-region={dragAttribute()}>{props.trailing}</div>
       </Show>
     </div>
   );

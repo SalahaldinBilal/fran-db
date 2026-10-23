@@ -90,6 +90,8 @@ Saved queries and tabs are separate. Opening a saved query puts a copy of its SQ
 - Colors, radii, font sizes and shadows come from the tokens in `src/styles/global.scss`. Don't hardcode hex values in component styles except for syntax highlight colors.
 - The UI should look polished and intentionally designed, not like a generic template. Avoid stock patterns such as an accent stripe on the active tab or on cards, but don't strip styling to get there.
 - The `@core` alias maps to `src/`.
+- There's no native title bar. The global `TabStrip` is the title bar (`dragRegion`), with `WindowControls` on Windows/Linux and the native traffic lights on macOS (`tauri.macos.conf.json`, which replaces the whole `windows` list, so keep both window entries in sync). Nothing may block dragging it: modal backdrops start below `--titlebar-height`, and while any `Modal` is open (`modalState`) the tabs and the settings button ignore the mouse so presses on them drag instead. Check the OS with `IS_MAC` (`helpers/platform.ts`, OS plugin).
+- The main window starts hidden. A splash window (`public/splash.html`, `src-tauri/src/splash.rs`) shows until `App` calls `show_main_window` after its first paint.
 
 ## Conventions
 

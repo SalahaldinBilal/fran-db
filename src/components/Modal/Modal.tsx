@@ -1,10 +1,11 @@
 import styles from "./Modal.module.scss";
-import { JSX, Show, createMemo } from "solid-js";
+import { JSX, Show, createEffect, createMemo, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Transition } from "solid-transition-group";
 import { makeEventListener } from "@solid-primitives/event-listener";
 import { X } from "lucide-solid";
 import Button from "../Button/Button";
+import useModalState from "@core/states/modalState";
 
 export type ModalProps = {
   show: boolean,
@@ -19,6 +20,10 @@ export type ModalProps = {
 
 function Modal(props: ModalProps) {
   const dismissible = createMemo(() => props.dismissible ?? true);
+
+  createEffect(() => {
+    if (props.show) onCleanup(useModalState.track());
+  });
 
   makeEventListener(window, "keydown", event => {
     if (props.show && dismissible() && event.key === "Escape") props.onHide?.();

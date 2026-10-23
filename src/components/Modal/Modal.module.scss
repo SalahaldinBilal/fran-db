@@ -1,6 +1,7 @@
+// Starts below the title bar so the window can always be dragged.
 .Backdrop {
   position: fixed;
-  inset: 0;
+  inset: var(--titlebar-height) 0 0;
   z-index: var(--z-modal);
   display: flex;
   align-items: center;
