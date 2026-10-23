@@ -42,6 +42,7 @@
           };
           npmDeps = pkgs.importNpmLock {npmRoot = ./.;};
           npmConfigHook = pkgs.importNpmLock.npmConfigHook;
+          env.VITE_NIX_BUILD = "1";
           installPhase = "cp -r dist $out";
         };
 

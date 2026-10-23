@@ -55,7 +55,9 @@ function App() {
 
   async function checkForUpdates() {
     const found = await useUpdaterState.checkForUpdate();
-    if (found) useToastState.pushToast(`Fran DB ${found.version} is available. Open Settings to install it.`, "info", 8000);
+    if (!found) return;
+    const hint = useUpdaterState.selfUpdate ? "Open Settings to install it." : "Update it through Nix.";
+    useToastState.pushToast(`Fran DB ${found.version} is available. ${hint}`, "info", 8000);
   }
 
   onMount(() => {

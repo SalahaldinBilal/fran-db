@@ -35,7 +35,7 @@ function SettingsModal(props: SettingsModalProps) {
       case "idle": return "Not checked yet.";
       case "checking": return "Checking for updates…";
       case "upToDate": return "You're on the latest version.";
-      case "available": return `Version ${updater.update()?.version} is available.`;
+      case "available": return `Version ${updater.update()?.version} is available.${updater.selfUpdate ? "" : " Update it through Nix."}`;
       case "downloading": return downloadPercent() === null ? "Downloading the update…" : `Downloading the update, ${downloadPercent()}%`;
       case "ready": return "Restart Fran DB to finish updating.";
       case "error": return updater.error();
@@ -45,6 +45,7 @@ function SettingsModal(props: SettingsModalProps) {
   const updateAction = createMemo(() => {
     const phase = updater.phase();
     if (phase === "ready") return "restart";
+    if (!updater.selfUpdate) return "check";
     if (phase === "downloading" || (updater.update() && (phase === "available" || phase === "error"))) return "install";
     return "check";
   });
