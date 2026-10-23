@@ -1,0 +1,128 @@
+.StructureTab {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.Toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  height: 46px;
+  padding: 0 10px 0 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+}
+
+.Kind {
+  padding: 2px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.Name {
+  max-width: 280px;
+  margin-right: 8px;
+  overflow: hidden;
+  color: var(--text-strong);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Spacer {
+  flex: 1;
+}
+
+.Content {
+  flex: 1;
+  min-height: 0;
+}
+
+.Center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.TableWrap {
+  height: 100%;
+  overflow: auto;
+}
+
+.Table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-md);
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border-strong);
+    background-color: var(--surface);
+    color: var(--text-muted);
+    font-size: var(--font-sm);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+    transition: background-color var(--duration-fast) var(--ease);
+  }
+
+  tbody tr:hover td {
+    background-color: rgb(255 255 255 / 2.5%);
+  }
+}
+
+.Narrow {
+  width: 40px;
+}
+
+.Strong {
+  color: var(--text-strong) !important;
+  font-weight: 550;
+}
+
+.Muted {
+  color: var(--text-muted) !important;
+}
+
+.Mono {
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+}
+
+.NameCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.KeyIcon {
+  color: var(--warning);
+}
+
+.Null {
+  color: var(--value-null);
+  font-style: italic;
+}

@@ -1,0 +1,251 @@
+.Viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+  background-color: var(--bg);
+  font-size: var(--font-sm);
+}
+
+.Canvas {
+  position: relative;
+  min-width: 100%;
+}
+
+.Header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  min-width: 100%;
+  border-bottom: 1px solid var(--border-strong);
+  background-color: var(--surface);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+}
+
+.HeaderCell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border-right: 1px solid var(--border);
+  user-select: none;
+
+  &.Numeric {
+    align-items: flex-end;
+  }
+}
+
+.ColumnName {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  color: var(--text-strong);
+  font-weight: 600;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.KeyIcon {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+.ColumnType {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  z-index: 1;
+  width: 6px;
+  cursor: col-resize;
+  transition: background-color var(--duration) var(--ease);
+
+  &:hover {
+    background-color: var(--accent-line);
+  }
+}
+
+.Row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  height: 26px;
+  min-width: 100%;
+  transition: background-color 80ms var(--ease);
+
+  &.Odd {
+    background-color: rgb(255 255 255 / 1.6%);
+  }
+
+  &:hover {
+    background-color: rgb(255 255 255 / 4%);
+  }
+}
+
+.RowNumber {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border-right: 1px solid var(--border-strong);
+  background-color: var(--surface);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  user-select: none;
+}
+
+.HeaderCorner {
+  z-index: 4;
+}
+
+.Cell {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 10px;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid rgb(255 255 255 / 3%);
+  color: var(--value-string);
+  font-family: var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+
+  &.Numeric {
+    justify-content: flex-end;
+    color: var(--value-number);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.Binary {
+    color: var(--value-binary);
+  }
+
+  &.Temporal {
+    color: var(--value-temporal);
+  }
+
+  &.Edited {
+    background-color: var(--value-edited);
+  }
+
+  &.Selected {
+    box-shadow: inset 0 0 0 1px var(--accent);
+    background-color: var(--accent-soft);
+  }
+}
+
+.NewRow {
+  background-color: var(--value-new) !important;
+}
+
+.DeletedRow {
+  background-color: var(--value-deleted) !important;
+
+  .Cell {
+    color: var(--text-faint);
+    text-decoration: line-through;
+  }
+}
+
+.Null {
+  color: var(--value-null);
+  font-style: italic;
+}
+
+.NoMatches {
+  position: sticky;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: var(--text-faint);
+  font-size: var(--font-md);
+}
+
+.Text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Match {
+  padding: 1px 0;
+  border-radius: 2px;
+  background-color: var(--value-match);
+  box-shadow: 0 0 0 1px var(--value-match);
+  color: var(--text-strong);
+}
+
+.InlineEditor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: calc(100% + 12px);
+  margin: 0 -6px;
+}
+
+.CellInput {
+  width: 100%;
+  height: 22px;
+  padding: 0 24px 0 5px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background-color: var(--control);
+  color: var(--text-strong);
+  font: inherit;
+  outline: none;
+
+  &::placeholder {
+    color: var(--value-null);
+    font-style: italic;
+  }
+}
+
+.ExpandEditor {
+  all: unset;
+  position: absolute;
+  right: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+}

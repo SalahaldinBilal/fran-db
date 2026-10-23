@@ -1,0 +1,55 @@
+.Switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: var(--font-md);
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &.Disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+}
+
+.Track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 999px;
+  background-color: var(--surface-active);
+  transition: var(--transition-colors);
+
+  input:focus-visible + & {
+    outline: 2px solid var(--accent-line);
+    outline-offset: 1px;
+  }
+
+  &.Checked {
+    background-color: var(--accent);
+  }
+}
+
+.Thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  transition: transform var(--duration) var(--ease);
+
+  .Checked & {
+    transform: translateX(12px);
+  }
+}

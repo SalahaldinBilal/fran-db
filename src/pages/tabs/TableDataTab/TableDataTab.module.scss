@@ -1,0 +1,113 @@
+.TableDataTab {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.Toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  z-index: 1;
+  height: 38px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+}
+
+.Pager {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+.Range {
+  min-width: 110px;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.Separator {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background-color: var(--border-strong);
+}
+
+.Toolbar .Search {
+  width: 240px;
+  height: 26px;
+  margin-right: 4px;
+  padding: 0 4px 0 9px;
+  transition: var(--transition-colors), width var(--duration) var(--ease);
+
+  input {
+    font-size: var(--font-sm);
+  }
+
+  &:focus-within,
+  &.Searching {
+    width: 300px;
+  }
+
+  &.Searching:not(:focus-within) {
+    border-color: var(--accent-line);
+    color: var(--accent-strong);
+  }
+}
+
+.ClearSearch {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
+}
+
+.ReadOnly {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+}
+
+.Spacer {
+  flex: 1;
+}
+
+.Timing {
+  margin-right: 4px;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+}
+
+.Content {
+  flex: 1;
+  min-height: 0;
+}
+
+.Center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}

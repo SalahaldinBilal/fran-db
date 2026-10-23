@@ -1,0 +1,671 @@
+.View {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.ValueRow {
+  --control-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.BigInput {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-height);
+  padding: 0 14px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--control);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-xl);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: var(--transition-colors);
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+
+  &:hover:not(:focus):not([readonly]) {
+    border-color: var(--control-border-hover);
+    background-color: var(--control-hover);
+  }
+
+  &:focus:not([readonly]) {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+
+  &[readonly] {
+    border-color: var(--border);
+    background-color: var(--bg-sunken);
+  }
+
+  &.Invalid,
+  &.Invalid:focus {
+    border-color: rgb(from var(--danger) r g b / 70%);
+    box-shadow: 0 0 0 3px var(--danger-soft);
+  }
+}
+
+.NowButton {
+  padding: 0 16px;
+}
+
+.Stepper {
+  display: flex;
+  gap: 6px;
+}
+
+.Note {
+  margin-top: -6px;
+  padding-left: 2px;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+}
+
+.NoteProblem {
+  color: var(--danger);
+}
+
+.Facts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-sunken);
+}
+
+.Fact {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+  padding: 4px 6px 4px 12px;
+  border-top: 1px solid var(--border);
+
+  &:first-child {
+    border-top: none;
+  }
+
+  &:hover .CopyFact {
+    opacity: 1;
+  }
+
+  dt {
+    color: var(--text-muted);
+    font-size: var(--font-sm);
+  }
+
+  dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--text-strong);
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    font-variant-numeric: tabular-nums;
+    word-break: break-all;
+
+    &.Plain {
+      font-family: var(--font-sans);
+      word-break: normal;
+    }
+  }
+}
+
+.CopyFact {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  opacity: 0;
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.Bits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.BitByte {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.BitRow {
+  display: flex;
+  gap: 2px;
+}
+
+.Bit {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--control);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:nth-child(4) {
+    margin-right: 4px;
+  }
+
+  &:hover {
+    border-color: var(--control-border-hover);
+    color: var(--text-strong);
+  }
+
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  &.BitSet {
+    border-color: var(--accent-line);
+    background-color: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+}
+
+.Bits.ReadOnly .Bit {
+  cursor: default;
+
+  &:hover:not(.BitSet) {
+    border-color: var(--border);
+    color: var(--text-faint);
+  }
+}
+
+.BitLabels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 7px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.TemporalBody {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+
+  &.TimeOnly {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.Calendar {
+  padding: 8px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-sunken);
+}
+
+.CalendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.MonthTitle {
+  color: var(--text-strong);
+  font-size: var(--font-md);
+  font-weight: 600;
+}
+
+.Weekdays,
+.Days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.Weekdays span {
+  padding: 4px 0;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  text-align: center;
+}
+
+.Day {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
+
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  &.Outside {
+    color: var(--text-faint);
+  }
+
+  &.Today {
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  &.SelectedDay {
+    background-color: var(--accent);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%), var(--shadow-control);
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+.Calendar.ReadOnly .Day {
+  cursor: default;
+
+  &:hover:not(.SelectedDay) {
+    background-color: transparent;
+    color: var(--text);
+  }
+
+  &.Outside:hover:not(.SelectedDay) {
+    color: var(--text-faint);
+  }
+}
+
+.Summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.Headline {
+  color: var(--text-strong);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.Muted {
+  color: var(--text-faint);
+}
+
+.Segments {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  &.Muted .Segment {
+    color: var(--text-faint);
+  }
+}
+
+.Segment {
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background-color: var(--control);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-xl);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+  transition: var(--transition-colors);
+
+  &:hover:not(:focus):not([readonly]) {
+    border-color: var(--control-border-hover);
+    background-color: var(--control-hover);
+  }
+
+  &:focus:not([readonly]) {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+
+  &[readonly] {
+    border-color: transparent;
+    background-color: transparent;
+  }
+}
+
+.Colon,
+.Sign {
+  padding: 0 1px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--font-xl);
+}
+
+.ChoiceView {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.ChoiceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+
+.ChoiceCaption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+}
+
+.ChoiceCount {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 6%);
+  color: var(--text);
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ChoiceFilter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 200px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background-color: var(--control);
+  color: var(--text-faint);
+  cursor: text;
+  transition: var(--transition-colors);
+
+  &:focus-within {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+
+  input {
+    all: unset;
+    flex: 1;
+    min-width: 0;
+    color: var(--text-strong);
+    font-size: var(--font-sm);
+  }
+}
+
+.Choices {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  max-height: min(52vh, 440px);
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-sunken);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 25%);
+}
+
+.Choice {
+  all: unset;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 8px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+  box-shadow: var(--highlight), var(--shadow-control);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--font-md);
+  cursor: pointer;
+  transition: var(--transition-colors), transform var(--duration-fast) var(--ease);
+
+  &:hover {
+    border-color: var(--control-border-hover);
+    background-color: var(--surface-raised);
+    color: var(--text-strong);
+
+    .ChoiceNumber {
+      color: var(--text-muted);
+    }
+  }
+
+  &:active {
+    transform: translateY(.5px);
+  }
+
+  &:focus-visible {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+
+  &.Picked {
+    border-color: var(--accent);
+    background-color: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent-line), var(--shadow-control);
+    color: var(--text-strong);
+  }
+
+  &.Was {
+    border-style: dashed;
+    border-color: var(--control-border-hover);
+  }
+}
+
+.ChoiceLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.EmptyChoice {
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-style: italic;
+}
+
+.ChoiceNumber {
+  flex-shrink: 0;
+  min-width: 16px;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.PickedMark,
+.ChoiceBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #fff;
+}
+
+.PickedMark {
+  border-radius: 50%;
+  background-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(74 134 240 / 20%);
+  animation: pop var(--duration) var(--ease);
+}
+
+.ChoiceBox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--control-border-hover);
+  border-radius: 4px;
+  transition: var(--transition-colors);
+
+  svg {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease);
+  }
+
+  .Picked & {
+    border-color: var(--accent);
+    background-color: var(--accent);
+
+    svg {
+      opacity: 1;
+    }
+  }
+}
+
+.WasTag {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-family: var(--font-sans);
+  font-size: var(--font-xs);
+}
+
+.Choices.ReadOnly .Choice {
+  cursor: default;
+
+  &:active {
+    transform: none;
+  }
+
+  &:hover:not(.Picked) {
+    border-color: var(--border);
+    background-color: var(--surface);
+    color: var(--text);
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(.6);
+    opacity: 0;
+  }
+}
+
+.NoChoices {
+  grid-column: 1 / -1;
+  padding: 18px;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+.BinaryView {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.HexDump {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  line-height: 20px;
+}
+
+.HexRow {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 14px;
+  white-space: pre;
+
+  &:hover {
+    background-color: rgb(255 255 255 / 3%);
+  }
+}
+
+.Offset {
+  color: var(--text-faint);
+}
+
+.HexBytes {
+  flex-shrink: 0;
+  width: 48ch;
+  color: var(--value-binary);
+}
+
+.Ascii {
+  color: var(--text-muted);
+}
+
+.Clipped {
+  padding: 8px 14px 2px;
+  color: var(--warning);
+  font-family: var(--font-sans);
+}
+
+.EmptyBytes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+}

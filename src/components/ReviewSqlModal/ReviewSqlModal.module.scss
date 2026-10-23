@@ -1,0 +1,58 @@
+.Body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.Script {
+  height: min(50vh, 420px);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.Safety {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgb(from var(--success) r g b / 30%);
+  border-radius: var(--radius-md);
+  background-color: rgb(from var(--success) r g b / 8%);
+  color: var(--text);
+  font-size: var(--font-sm);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--success);
+  }
+
+  &.Unsafe {
+    border-color: rgb(from var(--warning) r g b / 32%);
+    background-color: rgb(from var(--warning) r g b / 8%);
+
+    svg {
+      color: var(--warning);
+    }
+  }
+}
+
+.Error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgb(229 88 79 / 40%);
+  border-radius: var(--radius-md);
+  background-color: var(--danger-soft);
+  color: var(--text);
+  font-size: var(--font-md);
+  word-break: break-word;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--danger);
+  }
+}

@@ -1,0 +1,71 @@
+.DatabaseTabs {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.Bar {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  background-color: var(--surface);
+  box-shadow: inset 0 -1px 0 var(--border);
+
+  > :last-child {
+    flex: 1;
+  }
+}
+
+// A caption for the tabs that follow, so it stays flat and quiet next to them.
+.DatabaseName {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  padding: 0 14px 0 12px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+  font-weight: 500;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 1px;
+    height: 16px;
+    margin-top: -8px;
+    background-color: var(--border-strong);
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.Body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.Panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+
+  &.Hidden {
+    display: none;
+  }
+}

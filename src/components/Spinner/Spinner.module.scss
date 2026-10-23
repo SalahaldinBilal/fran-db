@@ -1,0 +1,11 @@
+.Spinner {
+  flex-shrink: 0;
+  color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,86 @@
+.Home {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: var(--surface);
+}
+
+.Header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 24px 6px;
+  flex-shrink: 0;
+
+  h1 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--font-xl);
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+}
+
+.Count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 2px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: var(--surface-active);
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.Spacer {
+  flex: 1;
+}
+
+.Search {
+  width: 240px;
+}
+
+.Banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 24px 14px;
+  padding: 8px 8px 8px 14px;
+  border: 1px solid rgb(236 106 100 / 30%);
+  border-radius: var(--radius-lg);
+  background-color: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--font-md);
+
+  span {
+    flex: 1;
+    color: var(--text);
+  }
+}
+
+// Top padding leaves room for a hovered card's lift and shadow, which this scroll area would clip.
+.Body {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 24px 32px;
+  overflow-y: auto;
+}
+
+.Center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.Grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+}

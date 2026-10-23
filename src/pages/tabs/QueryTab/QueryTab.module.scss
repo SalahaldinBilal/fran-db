@@ -1,0 +1,301 @@
+.QueryTab {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.Toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 38px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+  position: relative;
+  z-index: 1;
+}
+
+.Separator {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background-color: var(--border-strong);
+}
+
+.Spacer {
+  flex: 1;
+}
+
+.Status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.Body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.EditorPane {
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.Splitter {
+  position: relative;
+  height: 1px;
+  flex-shrink: 0;
+  background-color: var(--border-strong);
+  cursor: row-resize;
+  transition: background-color var(--duration) var(--ease);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+
+  &:hover {
+    background-color: var(--accent);
+  }
+}
+
+.ResultsPane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--bg);
+}
+
+.ResultTabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 0 6px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+}
+
+.ResultTab {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  font-weight: 550;
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    color: var(--text-strong);
+    background-color: var(--surface-hover);
+  }
+
+  &.Active {
+    color: var(--text-strong);
+    background-color: var(--surface-active);
+    box-shadow: var(--highlight), var(--shadow-control);
+  }
+
+  &.HasError svg {
+    color: var(--danger);
+  }
+}
+
+.Count {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.Stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px;
+  font-size: var(--font-sm);
+  white-space: nowrap;
+}
+
+.StatementCount {
+  color: var(--text-muted);
+}
+
+.Stat {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  cursor: default;
+}
+
+.StatLabel {
+  color: var(--text-faint);
+}
+
+.StatValue {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.FetchPart {
+  color: var(--text-faint);
+}
+
+.ResultTabs .Filter {
+  width: 200px;
+  height: 24px;
+  margin-right: 6px;
+  padding: 0 3px 0 8px;
+  gap: 6px;
+  transition: var(--transition-colors), width var(--duration) var(--ease);
+
+  input {
+    font-size: var(--font-sm);
+  }
+
+  &:focus-within,
+  &.Filtering {
+    width: 260px;
+  }
+
+  &.Filtering:not(:focus-within) {
+    border-color: var(--accent-line);
+    color: var(--accent-strong);
+  }
+}
+
+.ClearFilter {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
+}
+
+.EditState {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 2px;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+  cursor: default;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+
+.ResultContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.Grid {
+  flex: 1;
+  min-height: 0;
+}
+
+.Truncated {
+  padding: 6px 12px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background-color: rgb(240 180 76 / 8%);
+  color: var(--warning);
+  font-size: var(--font-sm);
+}
+
+.Messages {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 0;
+}
+
+.Message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 4px 14px;
+  color: var(--success);
+  font-size: var(--font-sm);
+  transition: background-color var(--duration-fast) var(--ease);
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background-color: rgb(255 255 255 / 2.5%);
+  }
+
+  &.Failed {
+    color: var(--danger);
+
+    .MessageText {
+      color: var(--danger);
+    }
+  }
+}
+
+.Index {
+  width: 22px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.Sql {
+  width: 38%;
+  min-width: 120px;
+  flex-shrink: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-family: var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.MessageText {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+.Duration {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}

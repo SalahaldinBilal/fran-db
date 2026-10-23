@@ -1,0 +1,22 @@
+.CodeBody {
+  height: min(60vh, 520px);
+}
+
+.Loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+}
+
+.FooterSpacer {
+  flex: 1;
+}
+
+.Null {
+  padding: 24px;
+  color: var(--value-null);
+  font-family: var(--font-mono);
+  font-style: italic;
+  text-align: center;
+}

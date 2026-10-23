@@ -1,0 +1,71 @@
+.Container {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 400px;
+}
+
+.Toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-float);
+  color: var(--text-strong);
+  font-size: var(--font-md);
+  animation: slide-in 180ms var(--ease);
+
+  .Icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  &.success .Icon {
+    color: var(--success);
+  }
+
+  &.error .Icon {
+    color: var(--danger);
+  }
+
+  .Message {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .Close {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    color: var(--text-faint);
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      background-color: var(--surface-active);
+      color: var(--text-strong);
+    }
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

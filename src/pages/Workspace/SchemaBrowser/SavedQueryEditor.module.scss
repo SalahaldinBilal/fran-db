@@ -1,0 +1,12 @@
+.Editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.Sql {
+  height: min(50vh, 380px);
+  overflow: hidden;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+}

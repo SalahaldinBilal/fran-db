@@ -1,0 +1,271 @@
+.Browser {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background-color: var(--surface);
+  box-shadow: 4px 0 16px rgb(0 0 0 / 22%);
+}
+
+.Header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px 8px 10px;
+}
+
+.Badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--badge);
+  box-shadow: var(--highlight), inset 0 0 0 1px rgb(255 255 255 / 8%);
+  color: #fff;
+  font-size: var(--font-md);
+  font-weight: 600;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 30%);
+}
+
+.ConnectionText {
+  flex: 1;
+  min-width: 0;
+}
+
+.ConnectionName {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: var(--font-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ServerVersion {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.CatalogPicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 8px 14px;
+}
+
+.CatalogIcon {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+.CatalogSelect {
+  flex: 1;
+  min-width: 0;
+}
+
+.PanelSwitch {
+  padding: 2px 8px 6px;
+}
+
+.Filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 6px;
+
+  > :first-child {
+    flex: 1;
+  }
+}
+
+.Tree {
+  flex: 1;
+  min-height: 0;
+  padding: 0 4px 12px;
+  overflow: auto;
+}
+
+.Center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.Row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 6px 0 calc(2px + var(--depth) * 14px);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--font-md);
+  cursor: default;
+  user-select: none;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+  }
+
+  &.Selected {
+    background-color: var(--accent-soft);
+    color: var(--text-strong);
+  }
+
+  &.System {
+    color: var(--text-muted);
+  }
+
+  &.Folder {
+    color: var(--text-muted);
+  }
+
+  &.SystemHeader {
+    margin-top: 6px;
+    color: var(--text-faint);
+    font-size: var(--font-sm);
+  }
+}
+
+.Chevron {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: color var(--duration-fast) var(--ease);
+
+  svg {
+    transition: transform var(--duration) var(--ease);
+  }
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &.Open svg {
+    transform: rotate(90deg);
+  }
+
+  &.Hidden {
+    visibility: hidden;
+  }
+}
+
+.NodeIcon {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: color var(--duration-fast) var(--ease);
+
+  .Selected & {
+    color: var(--accent-strong);
+  }
+}
+
+.Name {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-top: 1px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Meta {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.Message {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 3px 8px 5px calc(24px + var(--depth) * 14px);
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &.Error {
+    color: var(--danger);
+  }
+}
+
+.QueryRow {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 38px;
+  padding: 0 8px;
+  border-radius: var(--radius-md);
+  cursor: default;
+  user-select: none;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .QueryName {
+    overflow: hidden;
+    color: var(--text);
+    font-size: var(--font-md);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .QueryMeta {
+    overflow: hidden;
+    color: var(--text-faint);
+    font-size: var(--font-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.GroupLabel {
+  padding: 8px 8px 4px;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.ResizeHandle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  z-index: 2;
+  width: 6px;
+  cursor: col-resize;
+  transition: background-color var(--duration) var(--ease);
+
+  &:hover {
+    background-color: var(--accent-line);
+  }
+}

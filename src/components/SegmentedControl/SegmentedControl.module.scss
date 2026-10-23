@@ -1,0 +1,70 @@
+.Control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--control-height);
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--control);
+
+  &.Fill {
+    display: flex;
+
+    .Option {
+      flex: 1;
+    }
+  }
+}
+
+.Option {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover:not(.Selected) {
+    color: var(--text-strong);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--accent-line);
+  }
+  &.Selected {
+    background-color: var(--surface-active);
+    box-shadow: var(--highlight), var(--shadow-control);
+    color: var(--text-strong);
+
+    .Count {
+      background-color: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+  }
+}
+
+.Count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background-color: rgb(255 255 255 / 6%);
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transition: var(--transition-colors);
+}

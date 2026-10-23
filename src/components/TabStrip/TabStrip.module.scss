@@ -1,0 +1,216 @@
+.Strip {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.Tabs {
+  display: flex;
+  align-items: stretch;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.Trailing {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+.Tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  max-width: 240px;
+  padding: 0 6px 0 12px;
+  color: var(--text-muted);
+  font-size: var(--font-md);
+  cursor: default;
+  user-select: none;
+  transition: var(--transition-colors);
+
+  &:focus-visible {
+    outline: 1px solid var(--accent-line);
+    outline-offset: -2px;
+  }
+
+  &:hover:not(.Active) {
+    color: var(--text);
+  }
+
+  &.Active {
+    color: var(--text-strong);
+  }
+
+  &:not(:has(.Close)) {
+    padding-right: 14px;
+  }
+}
+
+.Dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 25%);
+}
+
+.Icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text-faint);
+
+  .Active & {
+    color: var(--accent);
+  }
+
+  &.Busy {
+    animation: pulse 1s ease-in-out infinite;
+  }
+}
+
+.Label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.RenameInput {
+  min-width: 0;
+  padding: 1px 4px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background-color: var(--control);
+  color: var(--text-strong);
+  font: inherit;
+  outline: none;
+}
+
+.Modified {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+
+  .Tab:hover &,
+  .Tab.Active & {
+    display: none;
+  }
+}
+
+.Close {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  opacity: 0;
+  transition: var(--transition-colors);
+
+  .Tab:hover &,
+  .Tab.Active & {
+    opacity: 1;
+  }
+
+  &:hover {
+    background-color: var(--surface-active);
+    color: var(--text-strong);
+  }
+}
+
+// Top-level tabs sit in the window chrome. The active one is a raised tab whose
+// curved feet blend into the panel below, like a browser.
+.global {
+  height: 38px;
+  padding: 6px 8px 0;
+  background-color: var(--chrome);
+  box-shadow: inset 0 -1px 0 var(--border);
+
+  .Tabs {
+    gap: 2px;
+    padding: 0 8px;
+  }
+
+  .Trailing {
+    margin-left: auto;
+    padding: 0 0 6px;
+  }
+
+  .Tab {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+
+    &:hover:not(.Active) {
+      background-color: rgb(255 255 255 / 3.5%);
+    }
+
+    &.Active {
+      background-color: var(--surface);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+
+      &::before,
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        width: 8px;
+        height: 8px;
+        pointer-events: none;
+      }
+
+      &::before {
+        left: -8px;
+        background: radial-gradient(circle at 0 0, transparent 7.5px, var(--surface) 8px);
+      }
+
+      &::after {
+        right: -8px;
+        background: radial-gradient(circle at 100% 0, transparent 7.5px, var(--surface) 8px);
+      }
+    }
+  }
+}
+
+// Inner tabs: the active tab takes the content's color and opens into it.
+.inner {
+  height: 34px;
+  background-color: var(--surface);
+  box-shadow: inset 0 -1px 0 var(--border);
+
+  .Tab {
+    border-right: 1px solid rgb(255 255 255 / 4%);
+
+    &:hover:not(.Active) {
+      background-color: rgb(255 255 255 / 2.5%);
+    }
+
+    &.Active {
+      background-color: var(--bg);
+      box-shadow: 1px 0 0 var(--border), -1px 0 0 var(--border);
+    }
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: .35;
+  }
+}

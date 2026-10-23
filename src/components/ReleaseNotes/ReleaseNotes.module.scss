@@ -1,0 +1,120 @@
+.ReleaseNotes {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-sunken);
+  color: var(--text);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 12px 0 4px;
+    color: var(--text-strong);
+    font-size: var(--font-sm);
+    font-weight: 600;
+  }
+
+  h1,
+  h2 {
+    font-size: var(--font-md);
+  }
+
+  p {
+    margin: 0 0 6px;
+  }
+
+  ul,
+  ol {
+    margin: 0 0 6px;
+    padding-left: 18px;
+  }
+
+  li + li {
+    margin-top: 3px;
+  }
+
+  li > ul,
+  li > ol {
+    margin: 3px 0 0;
+  }
+
+  li::marker {
+    color: var(--text-faint);
+  }
+
+  strong {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  code {
+    padding: 1px 4px;
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-active);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+  }
+
+  pre {
+    margin: 0 0 6px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    background-color: var(--control);
+
+    code {
+      padding: 0;
+      background: none;
+    }
+  }
+
+  blockquote {
+    margin: 0 0 6px;
+    padding-left: 10px;
+    border-left: 2px solid var(--border-strong);
+    color: var(--text-muted);
+  }
+
+  hr {
+    margin: 10px 0;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  table {
+    margin: 0 0 6px;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+
+  th {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  img {
+    max-width: 100%;
+  }
+}

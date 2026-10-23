@@ -1,0 +1,91 @@
+.Backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: rgb(4 5 7 / 55%);
+
+  &.Entering {
+    animation: fade var(--duration) var(--ease);
+
+    .Dialog {
+      animation: rise var(--duration) var(--ease);
+    }
+  }
+
+  &.Exiting {
+    animation: fade 100ms var(--ease) reverse forwards;
+  }
+}
+
+.Dialog {
+  display: flex;
+  flex-direction: column;
+  width: 480px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background-color: var(--surface);
+  box-shadow: var(--highlight), var(--shadow-modal);
+}
+
+.Header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px 10px 18px;
+  flex-shrink: 0;
+}
+
+.Titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.Title {
+  color: var(--text-strong);
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+
+.Subtitle {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Content {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 18px 18px;
+  overflow-y: auto;
+}
+
+.Footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-sunken);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(6px) scale(.99);
+  }
+}

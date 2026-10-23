@@ -1,0 +1,121 @@
+.Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: var(--control-height);
+  padding: 0 12px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--font-md);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition-colors), transform var(--duration-fast) var(--ease);
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(0.5px);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+  }
+
+  &.Small {
+    height: 26px;
+    padding: 0 9px;
+    font-size: var(--font-sm);
+    gap: 5px;
+  }
+
+  &.Icon {
+    width: var(--control-height);
+    padding: 0;
+
+    &.Small {
+      width: 26px;
+    }
+  }
+}
+
+.ghost {
+  color: var(--text-muted);
+
+  &:not(:disabled):hover {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
+
+  &.Active {
+    background-color: var(--surface-active);
+    color: var(--text-strong);
+  }
+}
+
+.subtle {
+  border-color: var(--control-border);
+  background-color: var(--surface-raised);
+  box-shadow: var(--highlight), var(--shadow-control);
+  color: var(--text-strong);
+
+  &:not(:disabled):hover {
+    border-color: var(--control-border-hover);
+    background-color: var(--surface-active);
+  }
+}
+
+.primary {
+  background-color: var(--accent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%), var(--shadow-control);
+  color: #fff;
+
+  &:not(:disabled):hover {
+    background-color: var(--accent-strong);
+  }
+}
+
+.danger {
+  color: var(--danger);
+
+  &:not(:disabled):hover {
+    background-color: var(--danger-soft);
+  }
+}
+
+.Tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-active);
+  box-shadow: var(--shadow-float);
+  color: var(--text-strong);
+  font-size: var(--font-sm);
+  font-weight: 400;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: fade var(--duration) var(--ease);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}

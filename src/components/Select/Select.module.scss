@@ -1,0 +1,136 @@
+.Select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: var(--control-height);
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  box-shadow: var(--highlight), var(--shadow-control);
+  color: var(--text-strong);
+  font-size: var(--font-md);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition-colors);
+
+  &:hover:not(.Disabled) {
+    border-color: var(--control-border-hover);
+    background-color: var(--surface-active);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible,
+  &.Open {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+
+  &.Small {
+    height: 26px;
+    padding: 0 6px 0 8px;
+    font-size: var(--font-sm);
+  }
+
+  &.Disabled {
+    opacity: .45;
+    cursor: default;
+  }
+
+  .Label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .Placeholder {
+    flex: 1;
+    color: var(--text-faint);
+  }
+
+  .Chevron {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform var(--duration) var(--ease);
+  }
+
+  &.Open .Chevron {
+    transform: rotate(180deg);
+  }
+}
+
+.Menu {
+  position: fixed;
+  z-index: var(--z-menu);
+  max-height: 320px;
+  padding: 4px;
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-float);
+  animation: drop-in var(--duration) var(--ease);
+
+  .Item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px 0 6px;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: var(--font-md);
+    white-space: nowrap;
+    cursor: pointer;
+
+    &.Highlighted {
+      background-color: var(--accent);
+      color: #fff;
+
+      .Check,
+      .Hint {
+        color: rgb(255 255 255 / 80%);
+      }
+    }
+
+    &.ItemDisabled {
+      color: var(--text-faint);
+      cursor: default;
+
+      .Hint {
+        color: var(--text-faint);
+      }
+    }
+  }
+
+  .Check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    flex-shrink: 0;
+    color: var(--accent-strong);
+  }
+
+  .ItemLabel {
+    flex: 1;
+  }
+
+  .Hint {
+    margin-left: 16px;
+    color: var(--text-faint);
+    font-size: var(--font-sm);
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}

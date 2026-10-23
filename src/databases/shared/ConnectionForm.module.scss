@@ -1,0 +1,47 @@
+.Form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.Sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.Note {
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--font-md);
+}
+
+.Textarea {
+  min-height: 90px;
+  padding: 8px 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background-color: var(--control);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  resize: vertical;
+  outline: none;
+  transition: var(--transition-colors);
+
+  &:hover {
+    border-color: var(--control-border-hover);
+  }
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+}

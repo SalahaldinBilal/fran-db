@@ -1,0 +1,85 @@
+.Editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.Divider {
+  height: 1px;
+  background-color: var(--border);
+}
+
+.Colors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.Swatch {
+  all: unset;
+  --swatch: var(--text-faint);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+  cursor: pointer;
+  transition: box-shadow var(--duration) var(--ease), transform var(--duration) var(--ease);
+
+  &:first-child {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--surface-active);
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 24px;
+      background-color: var(--text-faint);
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+  }
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &:focus-visible,
+  &.Selected {
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--swatch);
+  }
+}
+
+.TestArea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.TestResult {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--success);
+  font-size: var(--font-sm);
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &.Failed {
+    color: var(--danger);
+  }
+}

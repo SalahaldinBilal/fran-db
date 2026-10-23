@@ -1,0 +1,48 @@
+.Field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  &.Grow {
+    flex: 1;
+  }
+}
+
+.Label {
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  font-weight: 550;
+}
+
+.Hint {
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+}
+
+.Row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.Section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  header {
+    h3 {
+      margin: 0;
+      color: var(--text-strong);
+      font-size: var(--font-base);
+      font-weight: 600;
+    }
+
+    p {
+      margin: 2px 0 0;
+      color: var(--text-muted);
+      font-size: var(--font-md);
+    }
+  }
+}
