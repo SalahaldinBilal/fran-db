@@ -12,7 +12,7 @@ export type HostKeyInfo = {
   fingerprint: string,
 };
 
-export type SshAuthMethod = "password" | "publicKey";
+export type SshAuthMethod = "password" | "publicKey" | "agent";
 
 export type SshOptions = {
   host: string,
@@ -20,6 +20,7 @@ export type SshOptions = {
   user: string,
   auth: SshAuthMethod,
   keyFile: string,
+  agentSocket: string,
 };
 
 export type MysqlConnectMethod = "tcp" | "socket" | "sshTunnel";

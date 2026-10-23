@@ -48,6 +48,7 @@ No frontend tests or linters are configured.
 
 - TCP, Unix socket, Windows named pipe (MySQL only), TCP over SSH.
 - mysql_async has named pipes switched off, so on Windows the pipe is relayed through `LocalForward` (`src-tauri/src/forward.rs`), a 127.0.0.1 port that opens the pipe per connection. The SSH tunnel uses the same relay with `direct-tcpip` channels.
+- SSH logs in with a password, a key file, or the SSH agent (`SshAuthMethod::Agent`, which offers each agent key in turn). The agent is `SSH_AUTH_SOCK` on Unix and the OpenSSH pipe, then Pageant, on Windows. `agentSocket` overrides it.
 - SSH host keys are checked against `known_hosts.json` in the app data dir. An unknown or changed key fails the connect with `unknownHostKey` / `hostKeyChanged` carrying the SHA256 fingerprint. The frontend asks the user and calls `trust_host_key`, then retries.
 
 ### Secrets

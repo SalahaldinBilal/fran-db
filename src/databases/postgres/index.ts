@@ -95,7 +95,7 @@ const postgresModule: DatabaseModule<"postgres"> = {
     user: "postgres",
     database: "postgres",
     defaultSchema: "public",
-    ssh: { host: "", port: 22, user: "", auth: "password", keyFile: "" },
+    ssh: { host: "", port: 22, user: "", auth: "password", keyFile: "", agentSocket: "" },
     ssl: { mode: "prefer", caFile: "", certFile: "", keyFile: "" },
     connectTimeoutSecs: 10,
     initSql: "",

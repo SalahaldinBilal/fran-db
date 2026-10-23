@@ -7,6 +7,8 @@ use std::{
 };
 
 use russh::client;
+use russh::keys::agent::AgentIdentity;
+use russh::keys::agent::client::{AgentClient, AgentStream};
 use russh::keys::{HashAlg, PrivateKeyWithHashAlg, PublicKeyOrCertificate, load_secret_key};
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +26,7 @@ pub enum SshAuthMethod {
     #[default]
     Password,
     PublicKey,
+    Agent,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +37,8 @@ pub struct SshOptions {
     pub user: String,
     pub auth: SshAuthMethod,
     pub key_file: String,
+    /// A Unix socket or Windows pipe for the agent. Empty means the usual one for the OS.
+    pub agent_socket: String,
 }
 
 impl Default for SshOptions {
@@ -44,6 +49,7 @@ impl Default for SshOptions {
             user: String::new(),
             auth: SshAuthMethod::Password,
             key_file: String::new(),
+            agent_socket: String::new(),
         }
     }
 }
@@ -60,14 +66,14 @@ impl SshOptions {
     pub fn required_secrets(&self) -> Vec<SecretSlot> {
         match self.auth {
             SshAuthMethod::Password => vec![Self::password_slot()],
-            SshAuthMethod::PublicKey => Vec::new(),
+            SshAuthMethod::PublicKey | SshAuthMethod::Agent => Vec::new(),
         }
     }
 
     /// The passphrase is only asked for once the key turns out to be encrypted.
     pub fn optional_secrets(&self) -> Vec<SecretSlot> {
         match self.auth {
-            SshAuthMethod::Password => Vec::new(),
+            SshAuthMethod::Password | SshAuthMethod::Agent => Vec::new(),
             SshAuthMethod::PublicKey => vec![Self::passphrase_slot()],
         }
     }
@@ -165,7 +171,7 @@ impl SshTunnel {
 
         let private_key = match options.auth {
             SshAuthMethod::PublicKey => Some(load_key(options, secrets)?),
-            SshAuthMethod::Password => None,
+            SshAuthMethod::Password | SshAuthMethod::Agent => None,
         };
 
         let rejection = Arc::new(Mutex::new(None));
@@ -193,28 +199,33 @@ impl SshTunnel {
             Ok(Ok(handle)) => handle,
         };
 
-        let auth = match private_key {
-            Some(key) => {
-                let hash = handle
-                    .best_supported_rsa_hash()
-                    .await
-                    .map_err(|error| AppError::ssh(error.to_string()))?
-                    .flatten();
+        let authenticated = match (options.auth, private_key) {
+            (SshAuthMethod::Agent, _) => authenticate_with_agent(&mut handle, options).await?,
+            (_, Some(key)) => {
+                let hash = rsa_hash(&mut handle).await?;
                 handle
                     .authenticate_publickey(&options.user, PrivateKeyWithHashAlg::new(Arc::new(key), hash))
                     .await
+                    .map_err(auth_failed)?
+                    .success()
             }
-            None => {
+            (_, None) => {
                 let password = secrets
                     .get(SSH_PASSWORD_SLOT)
                     .ok_or_else(|| AppError::secrets_required(vec![SshOptions::password_slot()]))?;
-                handle.authenticate_password(&options.user, password).await
+                handle
+                    .authenticate_password(&options.user, password)
+                    .await
+                    .map_err(auth_failed)?
+                    .success()
             }
-        }
-        .map_err(|error| AppError::ssh(format!("SSH authentication failed: {error}")))?;
+        };
 
-        if !auth.success() {
-            return Err(AppError::ssh("SSH authentication was rejected"));
+        if !authenticated {
+            return Err(AppError::ssh(match options.auth {
+                SshAuthMethod::Agent => "The SSH server didn't accept any of the agent's keys",
+                _ => "SSH authentication was rejected",
+            }));
         }
 
         let handle = Arc::new(handle);
@@ -241,6 +252,87 @@ impl SshTunnel {
 
         Ok(Self { forward, handle })
     }
+}
+
+fn auth_failed(error: impl std::fmt::Display) -> AppError {
+    AppError::ssh(format!("SSH authentication failed: {error}"))
+}
+
+async fn rsa_hash(handle: &mut client::Handle<HostKeyCheck>) -> AppResult<Option<HashAlg>> {
+    Ok(handle
+        .best_supported_rsa_hash()
+        .await
+        .map_err(|error| AppError::ssh(error.to_string()))?
+        .flatten())
+}
+
+type Agent = AgentClient<Box<dyn AgentStream + Send + Unpin>>;
+
+#[cfg(unix)]
+async fn connect_agent(socket: &str) -> AppResult<Agent> {
+    let path = match socket.trim() {
+        "" => std::env::var("SSH_AUTH_SOCK").map_err(|_| {
+            AppError::ssh("No SSH agent found: SSH_AUTH_SOCK isn't set. Start ssh-agent, or enter the agent's socket path.")
+        })?,
+        path => path.to_string(),
+    };
+    AgentClient::connect_uds(&path)
+        .await
+        .map(AgentClient::dynamic)
+        .map_err(|error| AppError::ssh(format!("Couldn't reach the SSH agent at {path}: {error}")))
+}
+
+#[cfg(windows)]
+const OPENSSH_AGENT_PIPE: &str = r"\\.\pipe\openssh-ssh-agent";
+
+/// Without a pipe name this uses the OpenSSH agent, and Pageant when that isn't running.
+#[cfg(windows)]
+async fn connect_agent(socket: &str) -> AppResult<Agent> {
+    let pipe = socket.trim();
+    if !pipe.is_empty() {
+        return AgentClient::connect_named_pipe(pipe)
+            .await
+            .map(AgentClient::dynamic)
+            .map_err(|error| AppError::ssh(format!("Couldn't reach the SSH agent at {pipe}: {error}")));
+    }
+
+    match AgentClient::connect_named_pipe(OPENSSH_AGENT_PIPE).await {
+        Ok(agent) => Ok(agent.dynamic()),
+        Err(_) => AgentClient::connect_pageant().await.map(AgentClient::dynamic).map_err(|_| {
+            AppError::ssh("No SSH agent is running. Start the OpenSSH Authentication Agent service or Pageant.")
+        }),
+    }
+}
+
+/// Offers each of the agent's keys in turn, like OpenSSH does.
+async fn authenticate_with_agent(handle: &mut client::Handle<HostKeyCheck>, options: &SshOptions) -> AppResult<bool> {
+    let mut agent = connect_agent(&options.agent_socket).await?;
+    let identities = agent
+        .request_identities()
+        .await
+        .map_err(|error| AppError::ssh(format!("Couldn't read the keys from the SSH agent: {error}")))?;
+    if identities.is_empty() {
+        return Err(AppError::ssh("The SSH agent has no keys. Add one with ssh-add."));
+    }
+
+    let rsa = rsa_hash(handle).await?;
+    for identity in identities {
+        let hash = if identity.public_key().algorithm().is_rsa() { rsa } else { None };
+        let result = match identity {
+            AgentIdentity::PublicKey { key, .. } => {
+                handle.authenticate_publickey_with(&options.user, key, hash, &mut agent).await
+            }
+            AgentIdentity::Certificate { certificate, .. } => {
+                handle.authenticate_certificate_with(&options.user, certificate, hash, &mut agent).await
+            }
+        }
+        .map_err(auth_failed)?;
+
+        if result.success() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn load_key(options: &SshOptions, secrets: &SecretBag) -> AppResult<russh::keys::PrivateKey> {

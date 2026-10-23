@@ -7,11 +7,18 @@ import Select, { SelectItem } from "@core/components/Select/Select";
 import SecretField from "@core/components/SecretField/SecretField";
 import FilePathInput from "@core/components/FilePathInput/FilePathInput";
 import { toPort } from "./fields";
+import { IS_WINDOWS } from "@core/helpers/platform";
 
 const SSH_AUTH: SelectItem<SshAuthMethod>[] = [
   { value: "password", label: "Password" },
   { value: "publicKey", label: "Key file" },
+  { value: "agent", label: "SSH agent" },
 ];
+
+const AGENT_SOCKET_PLACEHOLDER = IS_WINDOWS ? "\\\\.\\pipe\\openssh-ssh-agent" : "$SSH_AUTH_SOCK";
+const AGENT_SOCKET_HINT = IS_WINDOWS
+  ? "Leave empty for the OpenSSH agent, or Pageant if that isn't running. Enter a pipe for agents like 1Password that use their own."
+  : "Leave empty to use SSH_AUTH_SOCK. Enter a socket path for agents like 1Password that use their own.";
 
 export type SshSectionProps = {
   ssh: SshOptions,
@@ -71,6 +78,15 @@ function SshSection(props: SshSectionProps) {
           </Field>
           <Field label="Key passphrase" hint="Only needed for encrypted keys.">
             <SecretField slot="sshKeyPassphrase" secrets={props.secrets} />
+          </Field>
+        </Match>
+        <Match when={props.ssh.auth === "agent"}>
+          <Field label="Agent socket" hint={AGENT_SOCKET_HINT}>
+            <Input
+              value={props.ssh.agentSocket}
+              onValue={value => props.update(ssh => { ssh.agentSocket = value; })}
+              placeholder={AGENT_SOCKET_PLACEHOLDER}
+            />
           </Field>
         </Match>
       </Switch>

@@ -17,7 +17,7 @@ The macOS build isn't signed, so macOS blocks it the first time. Open System Set
 ## Features
 
 **Connections**
-- TCP, a Unix socket, a Windows named pipe (MySQL only), or TCP through an SSH tunnel with a password or a key
+- TCP, a Unix socket, a Windows named pipe (MySQL only), or TCP through an SSH tunnel with a password, a key file or your SSH agent
 - SSL modes from "if available" up to full certificate and host name checks
 - SSH host keys are checked against the ones you've trusted before, and a new or changed key asks first
 - Passwords and key passphrases are kept in an encrypted file whose key lives in the OS keychain

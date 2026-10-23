@@ -98,7 +98,7 @@ const mysqlModule: DatabaseModule<"mysql"> = {
     socketPath: "",
     user: "root",
     defaultSchema: "",
-    ssh: { host: "", port: 22, user: "", auth: "password", keyFile: "" },
+    ssh: { host: "", port: 22, user: "", auth: "password", keyFile: "", agentSocket: "" },
     ssl: { mode: "preferred", caFile: "", certFile: "", keyFile: "" },
     compression: false,
     cleartextAuth: false,
