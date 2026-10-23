@@ -14,6 +14,27 @@ Older versions are on the [releases page](../../releases). The app checks for up
 
 The macOS build isn't signed, so macOS blocks it the first time. Open System Settings > Privacy & Security and click Open Anyway. On Linux, make the AppImage executable with `chmod +x` before running it.
 
+### NixOS
+
+Add the flake to your system flake's inputs:
+
+```nix
+inputs.fran-db = {
+  url = "github:SalahaldinBilal/fran-db";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+Then add the package to your configuration, with `inputs` passed in through `specialArgs`:
+
+```nix
+environment.systemPackages = [
+  inputs.fran-db.packages.${pkgs.stdenv.hostPlatform.system}.default
+];
+```
+
+Rebuild with `nixos-rebuild switch`. To update, run `nix flake update fran-db` and rebuild. The app tells you when a new version is out.
+
 ## Features
 
 **Connections**
@@ -51,7 +72,7 @@ Connection profiles, saved queries, open tabs and settings are JSON files there.
 
 ## Development
 
-Needs Node 24 and a stable Rust toolchain, plus [Tauri's system dependencies](https://tauri.app/start/prerequisites/) for your OS.
+Needs Node 24 and a stable Rust toolchain, plus [Tauri's system dependencies](https://tauri.app/start/prerequisites/) for your OS. With Nix, `nix develop` gives a shell with all of them.
 
 ```sh
 npm install
