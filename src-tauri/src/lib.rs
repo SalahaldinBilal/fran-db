@@ -5,6 +5,7 @@ pub mod forward;
 pub mod json_store;
 pub mod saved_queries;
 pub mod settings;
+pub mod splash;
 pub mod ssh;
 pub mod tab_state;
 pub mod vault;
@@ -38,6 +39,7 @@ pub fn run() {
             app.manage(Arc::new(TabStateStore::load(data_dir.join("tab_state.json"))));
             app.manage(Arc::new(SettingsStore::load(data_dir.join("settings.json"))));
             app.manage(SessionManager::default());
+            splash::open(app.handle())?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -82,6 +84,7 @@ pub fn run() {
             tab_state::set_tab_state,
             settings::get_settings,
             settings::set_settings,
+            splash::show_main_window,
         ])
         .build(tauri::generate_context!())
         .expect("error while building the app");

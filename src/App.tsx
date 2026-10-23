@@ -18,6 +18,7 @@ import useSettingsState from "./states/settingsState";
 import useUpdaterState from "./states/updaterState";
 import useToastState from "./states/toastState";
 import { installGlobalContextMenu } from "./helpers/globalContextMenu";
+import { safeInvoke } from "./helpers/safeInvoke";
 
 function App() {
   const workspace = useWorkspaceState;
@@ -53,6 +54,8 @@ function App() {
   }
 
   onMount(() => {
+    // Two frames so the first paint is done before the window swaps in, otherwise it shows blank.
+    requestAnimationFrame(() => requestAnimationFrame(() => safeInvoke("show_main_window")));
     useSettingsState.load();
     checkForUpdates();
     useConnectionsState.load();

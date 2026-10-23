@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fran DB</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #0e0f12;
+        font-family: "Inter Variable", Inter, "Segoe UI", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        cursor: default;
+      }
+
+      /* Only the body is a drag region, so clicks anywhere must land on it. */
+      body * {
+        pointer-events: none;
+      }
+
+      .Icon {
+        width: 84px;
+        height: 84px;
+        animation: breathe 2.4s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+      }
+
+      .Name {
+        margin-top: 18px;
+        color: #eceef2;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .Status {
+        margin-top: 4px;
+        color: #878d99;
+        font-size: 12px;
+      }
+
+      .Bar {
+        position: relative;
+        width: 120px;
+        height: 3px;
+        margin-top: 22px;
+        overflow: hidden;
+        border-radius: 2px;
+        background-color: #2b2e36;
+      }
+
+      .Bar::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        width: 40%;
+        height: 100%;
+        border-radius: inherit;
+        background-color: #4a86f0;
+        animation: sweep 1.1s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+      }
+
+      .Version {
+        position: absolute;
+        bottom: 14px;
+        color: #5c626d;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      @keyframes breathe {
+        50% {
+          transform: scale(1.04);
+        }
+      }
+
+      @keyframes sweep {
+        from {
+          left: -40%;
+        }
+
+        to {
+          left: 100%;
+        }
+      }
+    </style>
+  </head>
+
+  <body data-tauri-drag-region>
+    <svg class="Icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" aria-hidden="true">
+      <g fill="#4a86f0" stroke="#4a86f0" stroke-width="80" stroke-linejoin="round">
+        <polygon points="124,372 172,104 432,224" />
+        <polygon points="900,372 852,104 592,224" />
+      </g>
+      <rect x="64" y="180" width="896" height="780" rx="200" fill="#4a86f0" />
+      <g fill="#2f66c9" stroke="#2f66c9" stroke-width="24" stroke-linejoin="round">
+        <polygon points="188,312 206,196 336,250" />
+        <polygon points="836,312 818,196 688,250" />
+      </g>
+      <g transform="translate(512 586) scale(.82) translate(-512 -512)" fill="none" stroke="#ffffff" stroke-width="56" stroke-linecap="round">
+        <ellipse cx="512" cy="322" rx="232" ry="86" />
+        <path d="M280 322v190c0 48 104 86 232 86s232-38 232-86V322" />
+        <path d="M280 512v190c0 48 104 86 232 86s232-38 232-86V512" />
+      </g>
+    </svg>
+    <div class="Name">Fran DB</div>
+    <div class="Status">Starting up…</div>
+    <div class="Bar"></div>
+    <div class="Version" id="version"></div>
+  </body>
+</html>

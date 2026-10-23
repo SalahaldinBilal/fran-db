@@ -66,4 +66,6 @@ type Commands = {
 
   "get_settings": Command<undefined, unknown>,
   "set_settings": Command<{ settings: unknown }>,
+
+  "show_main_window": Command,
 };
