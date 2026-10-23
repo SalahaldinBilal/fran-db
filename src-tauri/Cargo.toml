@@ -29,6 +29,7 @@ tauri-plugin-clipboard-manager = "2.5.0"
 tauri-plugin-updater = "2.14.0"
 tauri-plugin-process = "2.4.0"
 tauri-plugin-os = "2.4.0"
+tauri-plugin-single-instance = "2.5.4"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 tokio = { version = "1.54.1", features = ["net", "io-util", "sync", "time", "macros", "rt"] }

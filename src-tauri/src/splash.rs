@@ -51,6 +51,19 @@ fn reveal_main(app: &AppHandle) {
     }
 }
 
+/// For a second launch: focuses whichever window is showing, the splash while the app is still loading.
+pub fn bring_to_front(app: &AppHandle) {
+    if let Some(splash) = app.get_webview_window(SPLASH) {
+        let _ = splash.set_focus();
+        return;
+    }
+    if let Some(main) = app.get_webview_window(MAIN) {
+        let _ = main.unminimize();
+        let _ = main.show();
+        let _ = main.set_focus();
+    }
+}
+
 #[tauri::command]
 pub fn show_main_window(app: AppHandle) {
     reveal_main(&app);

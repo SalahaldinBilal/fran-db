@@ -24,6 +24,8 @@ use vault::Vault;
 
 pub fn run() {
     let app = tauri::Builder::default()
+        // Has to be the first plugin, so a second launch exits before anything else starts.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| splash::bring_to_front(app)))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
