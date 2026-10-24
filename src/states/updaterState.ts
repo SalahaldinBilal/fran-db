@@ -9,6 +9,7 @@ export type UpdatePhase = "idle" | "checking" | "upToDate" | "available" | "down
 export type DownloadProgress = { downloaded: number, total: number | null };
 
 function useUpdaterStateInner() {
+  const selfUpdate = !import.meta.env.VITE_NIX_BUILD;
   const [phase, setPhase] = createSignal<UpdatePhase>("idle");
   const [update, setUpdate] = createSignal<Update | null>(null);
   const [progress, setProgress] = createSignal<DownloadProgress>({ downloaded: 0, total: null });
@@ -56,7 +57,7 @@ function useUpdaterStateInner() {
     }
   }
 
-  return { phase, update, progress, error, currentVersion, checkForUpdate, install, restart: relaunch };
+  return { selfUpdate, phase, update, progress, error, currentVersion, checkForUpdate, install, restart: relaunch };
 }
 
 const useUpdaterState = createRoot(useUpdaterStateInner);
