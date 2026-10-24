@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-24
+
 ### Added
 
 - SSH tunnels can log in with your SSH agent. It uses `SSH_AUTH_SOCK` on macOS and Linux, and the OpenSSH agent or Pageant on Windows. Agents with their own socket, like 1Password, can be set per connection.
