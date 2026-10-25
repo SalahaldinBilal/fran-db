@@ -53,6 +53,21 @@
   }
 }
 
+.Custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+
+  &:not(.Selected) {
+    background-color: var(--surface-active);
+  }
+}
+
+.Fill {
+  margin-left: auto;
+}
+
 .TestArea {
   display: flex;
   align-items: center;

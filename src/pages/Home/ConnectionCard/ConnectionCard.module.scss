@@ -47,6 +47,15 @@
     box-shadow: var(--highlight), var(--focus-ring);
   }
 
+  &.Filled {
+    border-color: rgb(from var(--card-color) r g b / 40%);
+    background-image: linear-gradient(rgb(from var(--card-color) r g b / 14%), rgb(from var(--card-color) r g b / 6%));
+
+    &:hover {
+      border-color: rgb(from var(--card-color) r g b / 60%);
+    }
+  }
+
   &.Connecting {
     cursor: progress;
 

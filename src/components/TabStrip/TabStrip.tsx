@@ -8,6 +8,7 @@ export type TabStripItem = {
   label: string,
   icon?: LucideIcon,
   dot?: string | null,
+  tint?: string | null,
   closable?: boolean,
   renamable?: boolean,
   modified?: boolean,
@@ -81,7 +82,8 @@ function TabStrip(props: TabStripProps) {
               tabIndex={0}
               aria-selected={item.id === props.activeId}
               class={styles.Tab}
-              classList={{ [styles.Active]: item.id === props.activeId }}
+              classList={{ [styles.Active]: item.id === props.activeId, [styles.Tinted]: !!item.tint }}
+              style={{ "--tint": item.tint ?? undefined }}
               onClick={() => props.onSelect(item.id)}
               onDblClick={() => {
                 if (item.renamable) setRenaming(item.id);

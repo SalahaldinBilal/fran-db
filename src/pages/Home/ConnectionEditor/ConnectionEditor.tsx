@@ -1,7 +1,7 @@
 import styles from "./ConnectionEditor.module.scss";
 import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
 import { createStore, produce, reconcile, unwrap } from "solid-js/store";
-import { CircleAlert, CircleCheck, Plug } from "lucide-solid";
+import { CircleAlert, CircleCheck, Pipette, Plug } from "lucide-solid";
 import { ConnectionProfile, DatabaseKind, DriverOptions } from "@core/types";
 import { databaseModules, defaultDriver, withDatabaseModule } from "@core/databases";
 import { PendingSecret, SecretEditor } from "@core/databases/types";
@@ -16,6 +16,8 @@ import Field, { FieldRow } from "@core/components/Field/Field";
 import Input from "@core/components/Input/Input";
 import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
+import Switch from "@core/components/Switch/Switch";
+import ColorPicker from "@core/components/ColorPicker/ColorPicker";
 
 const COLORS = ["#4a88c7", "#4fa37a", "#c9a34a", "#d07a3c", "#c75450", "#9a6fc4", "#7d8590"];
 
@@ -28,7 +30,7 @@ export type ConnectionEditorProps = {
 type TestResult = { ok: boolean, message: string };
 
 function blankProfile(kind: DatabaseKind): ConnectionProfile {
-  return { id: "", name: "", color: null, ...defaultDriver(kind) };
+  return { id: "", name: "", color: null, colorFill: false, ...defaultDriver(kind) };
 }
 
 function ConnectionEditor(props: ConnectionEditorProps) {
@@ -38,6 +40,8 @@ function ConnectionEditor(props: ConnectionEditorProps) {
   const [draft, setDraft] = createStore<ConnectionProfile>(blankProfile("mysql"));
   const [pending, setPending] = createStore<Record<string, PendingSecret>>({});
   const [storedSlots, setStoredSlots] = createSignal<string[]>([]);
+  const [pickerAnchor, setPickerAnchor] = createSignal<HTMLElement | null>(null);
+  const customColor = createMemo(() => draft.color !== null && !COLORS.includes(draft.color) ? draft.color : null);
   const [saving, setSaving] = createSignal(false);
   const [testing, setTesting] = createSignal(false);
   const [testResult, setTestResult] = createSignal<TestResult | null>(null);
@@ -201,6 +205,37 @@ function ConnectionEditor(props: ConnectionEditorProps) {
                 />
               )}
             </For>
+            <button
+              class={`${styles.Swatch} ${styles.Custom}`}
+              classList={{ [styles.Selected]: customColor() !== null }}
+              style={{ "--swatch": customColor() ?? undefined }}
+              aria-label="Custom color"
+              aria-expanded={pickerAnchor() !== null}
+              title="Custom color"
+              onClick={event => setPickerAnchor(pickerAnchor() ? null : event.currentTarget)}
+            >
+              <Show when={customColor() === null}>
+                <Pipette size={11} />
+              </Show>
+            </button>
+            <Show when={pickerAnchor()}>
+              {anchor => (
+                <ColorPicker
+                  anchor={anchor()}
+                  value={customColor() ?? draft.color ?? COLORS[0]}
+                  onChange={hex => setDraft("color", hex)}
+                  onClose={() => setPickerAnchor(null)}
+                />
+              )}
+            </Show>
+            <span class={styles.Fill}>
+              <Switch
+                checked={draft.colorFill}
+                disabled={draft.color === null}
+                onChange={checked => setDraft("colorFill", checked)}
+                label="Color the whole tab and card"
+              />
+            </span>
           </div>
         </Field>
 
