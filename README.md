@@ -1,6 +1,6 @@
 # Fran DB
 
-A desktop SQL client for MySQL, MariaDB and PostgreSQL, built with [Tauri 2](https://tauri.app/) and [SolidJS](https://www.solidjs.com/).
+A desktop SQL client for MySQL, MariaDB, PostgreSQL and SQLite, built with [Tauri 2](https://tauri.app/) and [SolidJS](https://www.solidjs.com/).
 
 ## Download
 

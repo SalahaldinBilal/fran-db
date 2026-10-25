@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- SQLite databases. Open a database file, optionally read only, browse and edit its tables, and run queries. Attached databases show in the tree next to `main`. Foreign keys are enforced by default, and you can turn that off per connection. When a change fails because an index or trigger calls a function that only the app that created the database has, the error names that index or trigger and explains why.
+- The table designer works with SQLite tables. It can rename tables and columns, add and drop columns, and change indexes. SQLite can't change a column's type, NULL setting or default in place, so the designer tells you when a change would mean rebuilding the table.
+
 ## [0.1.1] - 2026-10-24
 
 ### Added
