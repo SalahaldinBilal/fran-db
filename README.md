@@ -16,14 +16,16 @@ The macOS build isn't signed, so macOS blocks it the first time. Open System Set
 
 ### NixOS
 
-Add the flake to your system flake's inputs:
+Add the flake to your system flake's inputs. The `stable` branch always points at the latest release:
 
 ```nix
 inputs.fran-db = {
-  url = "github:SalahaldinBilal/fran-db";
+  url = "github:SalahaldinBilal/fran-db/stable";
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
+
+To stay on one version, use its tag instead, like `github:SalahaldinBilal/fran-db/v0.1.1`.
 
 Then add the package to your configuration, with `inputs` passed in through `specialArgs`:
 
@@ -34,6 +36,15 @@ environment.systemPackages = [
 ```
 
 Rebuild with `nixos-rebuild switch`. To update, run `nix flake update fran-db` and rebuild. The app tells you when a new version is out.
+
+Every release is built for x86_64 and aarch64 Linux and pushed to a binary cache. Add it so Nix downloads the build instead of compiling it:
+
+```nix
+nix.settings = {
+  extra-substituters = ["https://cache.kirsi.dev"];
+  extra-trusted-public-keys = ["cache.kirsi.dev-1:kobyAUhAcq9OMNdNJCX6R0zz5GZ7OGv8SP7uJxcH8Cw="];
+};
+```
 
 ## Features
 
