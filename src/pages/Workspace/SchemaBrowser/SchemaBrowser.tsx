@@ -1,9 +1,10 @@
 import styles from "./SchemaBrowser.module.scss";
 import { Match, Show, Switch, createMemo, createSignal, onMount, untrack } from "solid-js";
-import { Database, RefreshCw, Unplug } from "lucide-solid";
+import { Cable, Database, RefreshCw, Unplug } from "lucide-solid";
 import useWorkspaceState from "@core/states/workspaceState";
 import useToastState from "@core/states/toastState";
-import { databaseModule } from "@core/databases";
+import usePortForwardState from "@core/states/portForwardState";
+import { databaseModule, withDatabaseModule } from "@core/databases";
 import { safeInvoke } from "@core/helpers/safeInvoke";
 import Button from "@core/components/Button/Button";
 import Select from "@core/components/Select/Select";
@@ -20,6 +21,7 @@ type Panel = "schemas" | "queries";
 function SchemaBrowser(props: { sessionId: string }) {
   const workspace = useWorkspaceState;
   const { pushError } = useToastState;
+  const forwards = usePortForwardState;
   const [width, setWidth] = createSignal(280);
   const [panel, setPanel] = createSignal<Panel>("schemas");
   const [catalogs, setCatalogs] = createSignal<string[]>([]);
@@ -88,6 +90,17 @@ function SchemaBrowser(props: { sessionId: string }) {
                   {current().info.server.product} {current().info.server.version}
                 </div>
               </div>
+              <Show when={withDatabaseModule(current().profile, (module, options) => module.sshTarget(options)) !== null}>
+                <Button
+                  icon
+                  size="sm"
+                  active={forwards.active(current().profile.id) !== undefined}
+                  tooltip="Port forward"
+                  onClick={() => forwards.openDialog(current().profile)}
+                >
+                  <Cable size={14} />
+                </Button>
+              </Show>
               <Button icon size="sm" tooltip="Refresh" onClick={refresh}>
                 <RefreshCw size={14} />
               </Button>

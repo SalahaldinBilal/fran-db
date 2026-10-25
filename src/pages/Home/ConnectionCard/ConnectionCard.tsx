@@ -1,6 +1,6 @@
 import styles from "./ConnectionCard.module.scss";
 import { Show, createMemo } from "solid-js";
-import { ArrowRight, Copy, Database, Ellipsis, Pencil, Plug, Server, Trash2 } from "lucide-solid";
+import { ArrowRight, Cable, Copy, Database, Ellipsis, Pencil, Plug, Server, Trash2 } from "lucide-solid";
 import { ConnectionProfile } from "@core/types";
 import { withDatabaseModule } from "@core/databases";
 import useWorkspaceState from "@core/states/workspaceState";
@@ -8,6 +8,7 @@ import useConnectionsState from "@core/states/connectionsState";
 import useContextMenuState, { MenuItem } from "@core/states/contextMenuState";
 import usePromptState from "@core/states/promptState";
 import useToastState from "@core/states/toastState";
+import usePortForwardState from "@core/states/portForwardState";
 import Button from "@core/components/Button/Button";
 import Spinner from "@core/components/Spinner/Spinner";
 
@@ -22,14 +23,17 @@ function ConnectionCard(props: ConnectionCardProps) {
   const { openContextMenu, openMenuAt } = useContextMenuState;
   const { confirm } = usePromptState;
   const { pushError } = useToastState;
+  const forwards = usePortForwardState;
 
   const details = createMemo(() =>
     withDatabaseModule(props.profile, (module, options) => ({
       kind: module.label,
       target: module.describeTarget(options),
       method: module.methodLabel(options),
+      forwardable: module.sshTarget(options) !== null,
     })),
   );
+  const forwarding = createMemo(() => forwards.active(props.profile.id) !== undefined);
   const connecting = createMemo(() => workspace.store.connecting[props.profile.id] ?? false);
 
   function connect() {
@@ -65,6 +69,7 @@ function ConnectionCard(props: ConnectionCardProps) {
       { label: "Connect", icon: Plug, onSelect: connect },
       { label: "Edit", icon: Pencil, onSelect: props.onEdit },
       { label: "Duplicate", icon: Copy, onSelect: duplicate },
+      ...(details().forwardable ? [{ label: "Port forward…", icon: Cable, onSelect: () => forwards.openDialog(props.profile) }] : []),
       { separator: true },
       { label: "Delete", icon: Trash2, danger: true, onSelect: remove },
     ];
@@ -95,7 +100,18 @@ function ConnectionCard(props: ConnectionCardProps) {
           <div class={styles.Name} title={props.profile.name}>{props.profile.name}</div>
           <div class={styles.Kind}>{details().kind}</div>
         </div>
-        <div class={styles.Tools} onClick={event => event.stopPropagation()}>
+        <div class={styles.Tools} classList={{ [styles.Pinned]: forwarding() }} onClick={event => event.stopPropagation()}>
+          <Show when={details().forwardable}>
+            <Button
+              icon
+              size="sm"
+              active={forwarding()}
+              tooltip={forwarding() ? `Forwarding 127.0.0.1:${forwards.active(props.profile.id)?.localPort}` : "Port forward"}
+              onClick={() => forwards.openDialog(props.profile)}
+            >
+              <Cable size={14} />
+            </Button>
+          </Show>
           <Button icon size="sm" tooltip="Edit" onClick={props.onEdit}>
             <Pencil size={14} />
           </Button>

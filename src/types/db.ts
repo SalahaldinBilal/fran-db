@@ -8,6 +8,13 @@ export type ServerInfo = {
   transactionalDdl: boolean,
 };
 
+export type PortForwardInfo = {
+  connectionId: string,
+  localPort: number,
+  host: string,
+  port: number,
+};
+
 export type SessionInfo = {
   id: string,
   connectionId: string,

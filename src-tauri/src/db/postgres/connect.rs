@@ -130,7 +130,7 @@ impl Connector {
             PostgresConnectMethod::Socket => (socket_endpoint(&options.socket_path, options.port)?, None),
             PostgresConnectMethod::SshTunnel => {
                 let tunnel =
-                    SshTunnel::open(&options.ssh, secrets, known_hosts, &host, options.port, timeout).await?;
+                    SshTunnel::open(&options.ssh, secrets, known_hosts, &host, options.port, 0, timeout).await?;
                 (
                     Endpoint::Tcp {
                         host: "127.0.0.1".to_string(),

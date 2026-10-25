@@ -104,6 +104,7 @@ const postgresModule: DatabaseModule<"postgres"> = {
   describeTarget,
   suggestName,
   methodLabel,
+  sshTarget: options => (options.method === "sshTunnel" ? { host: options.host, port: options.port } : null),
   defaultDatabase: options => options.defaultSchema.trim() || null,
   sqlDialect: PostgreSQL,
   quoteIdentifier,

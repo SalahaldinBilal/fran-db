@@ -30,7 +30,7 @@ export type ConnectionEditorProps = {
 type TestResult = { ok: boolean, message: string };
 
 function blankProfile(kind: DatabaseKind): ConnectionProfile {
-  return { id: "", name: "", color: null, colorFill: false, ...defaultDriver(kind) };
+  return { id: "", name: "", color: null, colorFill: false, forwardPort: null, ...defaultDriver(kind) };
 }
 
 function ConnectionEditor(props: ConnectionEditorProps) {

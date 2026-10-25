@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::connections::{SecretBag, SecretSlot};
 use crate::error::AppResult;
-use crate::ssh::known_hosts::KnownHosts;
+use crate::ssh::{SshOptions, known_hosts::KnownHosts};
 use session::DatabaseSession;
 use types::StatementRange;
 
@@ -59,6 +59,14 @@ impl DriverOptions {
             Self::Postgres(options) => options.optional_secrets(),
             Self::Sqlite(options) => options.optional_secrets(),
             Self::D1(options) => options.optional_secrets(),
+        }
+    }
+
+    pub fn ssh_target(&self) -> Option<(&SshOptions, &str, u16)> {
+        match self {
+            Self::Mysql(options) => options.ssh_target(),
+            Self::Postgres(options) => options.ssh_target(),
+            Self::Sqlite(_) | Self::D1(_) => None,
         }
     }
 

@@ -1,7 +1,7 @@
 import { invoke, InvokeOptions } from "@tauri-apps/api/core";
 import {
   BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, ConnectionProfile, DatabaseInfo, DatabaseKind, DesignOptions,
-  HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, ResultSet, RowChange, SavedQuery, ServerInfo,
+  HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, ResultSet, RowChange, SavedQuery, ServerInfo,
   SessionInfo, SqlTemplate, StatementOutcome, StatementRange, TableDesign, VaultStatus,
 } from "@core/types";
 
@@ -31,6 +31,9 @@ type Commands = {
   "set_connection_secret": Command<{ connectionId: string, slot: string, value: string }>,
   "clear_connection_secret": Command<{ connectionId: string, slot: string }>,
   "trust_host_key": Command<{ key: HostKeyInfo }>,
+  "start_port_forward": Command<{ connectionId: string, localPort: number, secrets: Secrets }, PortForwardInfo>,
+  "stop_port_forward": Command<{ connectionId: string }>,
+  "list_port_forwards": Command<undefined, PortForwardInfo[]>,
 
   "open_session": Command<{ connectionId: string, secrets: Secrets }, SessionInfo>,
   "test_connection": Command<{ profile: ConnectionProfile, secrets: Secrets }, ServerInfo>,
