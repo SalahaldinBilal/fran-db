@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-25
+
 ### Added
 
 - Port forwarding for SSH tunnel connections. The cable button on a connection card, or in the schema browser header once connected, opens a dialog where you pick a local port. While the forward runs, other programs on your machine reach the database at `127.0.0.1:<port>` through the tunnel, with or without a session open. Stop it from the same dialog. The port you used last is remembered per connection, but a forward never starts on its own.
