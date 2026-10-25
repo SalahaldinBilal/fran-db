@@ -3,17 +3,20 @@ import { DatabaseModule } from "./types";
 import mysqlModule from "./mysql";
 import postgresModule from "./postgres";
 import sqliteModule from "./sqlite";
+import d1Module from "./d1";
 
 const modules: { [K in DatabaseKind]: DatabaseModule<K> } = {
   mysql: mysqlModule,
   postgres: postgresModule,
   sqlite: sqliteModule,
+  d1: d1Module,
 };
 
 const driverDefaults: { [K in DatabaseKind]: () => { kind: K, options: OptionsByKind[K] } } = {
   mysql: () => ({ kind: "mysql", options: mysqlModule.defaultOptions() }),
   postgres: () => ({ kind: "postgres", options: postgresModule.defaultOptions() }),
   sqlite: () => ({ kind: "sqlite", options: sqliteModule.defaultOptions() }),
+  d1: () => ({ kind: "d1", options: d1Module.defaultOptions() }),
 };
 
 export const databaseModules: { kind: DatabaseKind, label: string }[] = Object.values(modules);

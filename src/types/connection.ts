@@ -1,4 +1,4 @@
-export type DatabaseKind = "mysql" | "postgres" | "sqlite";
+export type DatabaseKind = "mysql" | "postgres" | "sqlite" | "d1";
 
 export type SecretSlot = {
   id: string,
@@ -83,10 +83,18 @@ export type SqliteOptions = {
   initSql: string,
 };
 
+export type D1Options = {
+  accountId: string,
+  // A database name or its UUID.
+  database: string,
+  timeoutSecs: number,
+};
+
 export type OptionsByKind = {
   mysql: MysqlOptions,
   postgres: PostgresOptions,
   sqlite: SqliteOptions,
+  d1: D1Options,
 };
 
 export type DriverOptions = {

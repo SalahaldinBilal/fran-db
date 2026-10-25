@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{
-        Arc, Mutex as StdMutex,
+        Arc, Mutex as StdMutex, RwLock,
         atomic::{AtomicU32, Ordering},
     },
     time::Instant,
@@ -24,26 +24,35 @@ use crate::db::types::{
 };
 use crate::error::{AppError, AppResult};
 
-pub struct SqliteSession {
-    connector: Box<dyn SqliteConnector>,
-    server: ServerInfo,
+/// The database the session works in. Replaced as a whole when the user switches databases.
+struct Target {
+    connector: Arc<dyn SqliteConnector>,
     meta: Arc<dyn SqliteConnection>,
+}
+
+pub struct SqliteSession {
+    target: RwLock<Arc<Target>>,
+    server: ServerInfo,
     contexts: StdMutex<HashMap<ContextId, Arc<dyn SqliteConnection>>>,
     next_context: AtomicU32,
 }
 
+/// Some backends refuse `sqlite_version()`, so the version stays empty there.
+async fn version(conn: &dyn SqliteConnection) -> AppResult<String> {
+    match metadata::rows(conn, "SELECT sqlite_version()", &[]).await {
+        Ok(found) => Ok(found.first().and_then(|row| metadata::text(row, 0)).unwrap_or_default()),
+        Err(_) => metadata::rows(conn, "SELECT 1", &[]).await.map(|_| String::new()),
+    }
+}
+
 impl SqliteSession {
     pub async fn connect(options: &SqliteOptions) -> AppResult<Self> {
-        Self::open(Box::new(LocalConnector::new(options)?)).await
+        Self::open(Arc::new(LocalConnector::new(options)?)).await
     }
 
-    pub async fn open(connector: Box<dyn SqliteConnector>) -> AppResult<Self> {
+    pub async fn open(connector: Arc<dyn SqliteConnector>) -> AppResult<Self> {
         let meta = connector.connect().await?;
-        let version = metadata::rows(meta.as_ref(), "SELECT sqlite_version()", &[])
-            .await?
-            .first()
-            .and_then(|row| metadata::text(row, 0))
-            .ok_or_else(|| AppError::general("The database didn't report its version"))?;
+        let version = version(meta.as_ref()).await?;
 
         Ok(Self {
             server: ServerInfo {
@@ -52,19 +61,26 @@ impl SqliteSession {
                 atomic_ddl: true,
                 transactional_ddl: true,
             },
-            connector,
-            meta,
+            target: RwLock::new(Arc::new(Target { connector, meta })),
             contexts: StdMutex::new(HashMap::new()),
             next_context: AtomicU32::new(1),
         })
     }
 
-    fn meta(&self) -> &dyn SqliteConnection {
-        self.meta.as_ref()
+    fn target(&self) -> Arc<Target> {
+        match self.target.read() {
+            Ok(target) => target.clone(),
+            Err(poisoned) => poisoned.into_inner().clone(),
+        }
     }
 
-    fn is_internal(&self) -> impl Fn(&str) -> bool + Sync + '_ {
-        |name: &str| self.connector.is_internal_table(name)
+    fn meta(&self) -> Arc<dyn SqliteConnection> {
+        self.target().meta.clone()
+    }
+
+    fn is_internal(&self) -> impl Fn(&str) -> bool + Sync + use<> {
+        let target = self.target();
+        move |name: &str| target.connector.is_internal_table(name)
     }
 
     fn context(&self, id: ContextId) -> AppResult<Arc<dyn SqliteConnection>> {
@@ -81,7 +97,7 @@ impl SqliteSession {
         if raw.columns.is_empty() {
             return (Vec::new(), None);
         }
-        match results::describe(self.meta(), raw, None).await {
+        match results::describe(self.meta().as_ref(), raw, None).await {
             Ok(columns) => (columns, None),
             Err(error) => (
                 results::basic_columns(raw),
@@ -97,16 +113,38 @@ impl DatabaseSession for SqliteSession {
         self.server.clone()
     }
 
+    fn catalog(&self) -> Option<String> {
+        self.target().connector.catalog()
+    }
+
+    async fn list_catalogs(&self) -> AppResult<Vec<String>> {
+        self.target().connector.list_catalogs().await
+    }
+
+    async fn switch_catalog(&self, catalog: &str) -> AppResult<()> {
+        let connector = self.target().connector.with_catalog(catalog).await?;
+        let meta = connector.connect().await?;
+        if let Ok(mut contexts) = self.contexts.lock() {
+            contexts.clear();
+        }
+        let next = Arc::new(Target { connector, meta });
+        match self.target.write() {
+            Ok(mut target) => *target = next,
+            Err(poisoned) => *poisoned.into_inner() = next,
+        }
+        Ok(())
+    }
+
     async fn list_databases(&self) -> AppResult<Vec<DatabaseInfo>> {
-        metadata::list_databases(self.meta()).await
+        metadata::list_databases(self.meta().as_ref()).await
     }
 
     async fn list_objects(&self, database: &str) -> AppResult<Vec<ObjectInfo>> {
-        metadata::list_objects(self.meta(), database, &self.is_internal()).await
+        metadata::list_objects(self.meta().as_ref(), database, &self.is_internal()).await
     }
 
     async fn list_columns(&self, database: &str) -> AppResult<Vec<CatalogColumn>> {
-        metadata::list_columns(self.meta(), database, &self.is_internal()).await
+        metadata::list_columns(self.meta().as_ref(), database, &self.is_internal()).await
     }
 
     async fn object_structure(
@@ -116,7 +154,7 @@ impl DatabaseSession for SqliteSession {
         kind: ObjectKind,
         _signature: Option<&str>,
     ) -> AppResult<ObjectStructure> {
-        metadata::object_structure(self.meta(), database, name, kind).await
+        metadata::object_structure(self.meta().as_ref(), database, name, kind).await
     }
 
     async fn object_sql(
@@ -127,11 +165,11 @@ impl DatabaseSession for SqliteSession {
         _signature: Option<&str>,
         template: SqlTemplate,
     ) -> AppResult<String> {
-        metadata::object_sql(self.meta(), database, name, kind, template).await
+        metadata::object_sql(self.meta().as_ref(), database, name, kind, template).await
     }
 
     async fn database_sql(&self, database: &str, template: SqlTemplate) -> AppResult<String> {
-        metadata::database_sql(self.meta(), database, template).await
+        metadata::database_sql(self.meta().as_ref(), database, template).await
     }
 
     async fn fetch_rows(
@@ -142,11 +180,11 @@ impl DatabaseSession for SqliteSession {
         limit: u64,
         search: Option<&str>,
     ) -> AppResult<ResultSet> {
-        metadata::fetch_rows(self.meta(), database, table, offset, limit, search).await
+        metadata::fetch_rows(self.meta().as_ref(), database, table, offset, limit, search).await
     }
 
     async fn primary_key(&self, database: &str, table: &str) -> AppResult<Vec<String>> {
-        metadata::primary_key(self.meta(), database, table).await
+        metadata::primary_key(self.meta().as_ref(), database, table).await
     }
 
     async fn column_choices(&self, _database: &str, _table: &str, _column: &str) -> AppResult<Option<ColumnChoices>> {
@@ -169,16 +207,16 @@ impl DatabaseSession for SqliteSession {
         statements: &[String],
         transactional: bool,
     ) -> AppResult<BatchOutcome> {
-        let conn = self.connector.connect().await?;
+        let conn = self.target().connector.connect().await?;
         let mut outcome = conn.run_batch(statements, transactional).await;
         if let Some(error) = outcome.error.take() {
-            outcome.error = Some(metadata::explain_missing_function(self.meta(), error).await);
+            outcome.error = Some(metadata::explain_missing_function(self.meta().as_ref(), error).await);
         }
         Ok(outcome)
     }
 
     async fn table_design(&self, database: &str, table: &str) -> AppResult<TableDesign> {
-        design::load_design(self.meta(), database, table)
+        design::load_design(self.meta().as_ref(), database, table)
             .await?
             .ok_or_else(|| AppError::not_found(format!("Table {table} not found")))
     }
@@ -201,7 +239,7 @@ impl DatabaseSession for SqliteSession {
 
     /// Unqualified names resolve across every attached database, so a context doesn't need one picked.
     async fn open_context(&self, _database: Option<String>) -> AppResult<ContextId> {
-        let conn = self.connector.connect().await?;
+        let conn = self.target().connector.connect().await?;
         let id = self.next_context.fetch_add(1, Ordering::SeqCst);
         self.contexts
             .lock()
@@ -248,7 +286,7 @@ impl DatabaseSession for SqliteSession {
                         execution_ms: elapsed_ms,
                         network_ms: None,
                         fetch_ms: 0.0,
-                        error: Some(metadata::explain_missing_function(self.meta(), error).await),
+                        error: Some(metadata::explain_missing_function(self.meta().as_ref(), error).await),
                     });
                     break;
                 }

@@ -43,6 +43,11 @@ fn master(schema: &str) -> String {
     format!("{}.sqlite_master", quote_identifier(schema))
 }
 
+/// Plain PRAGMA statements rather than the `pragma_*` table functions, which D1 doesn't document.
+fn pragma(schema: &str, name: &str, argument: &str) -> String {
+    format!("PRAGMA {}.{name}({})", quote_identifier(schema), string_literal(argument))
+}
+
 #[derive(Debug, Clone)]
 pub struct TableColumn {
     pub name: String,
@@ -56,25 +61,55 @@ pub struct TableColumn {
 }
 
 pub async fn table_columns(conn: &dyn SqliteConnection, schema: &str, table: &str) -> AppResult<Vec<TableColumn>> {
-    let found = rows(
-        conn,
-        "SELECT name, type, \"notnull\", dflt_value, pk, hidden FROM pragma_table_xinfo(?1, ?2) \
-         WHERE hidden <> 1 ORDER BY cid",
-        &[param(table), param(schema)],
-    )
-    .await?;
+    let found = rows(conn, &pragma(schema, "table_xinfo", table), &[]).await?;
 
     Ok(found
         .iter()
+        .filter(|row| int(row, 6) != 1)
         .map(|row| TableColumn {
-            name: name(row, 0),
-            data_type: name(row, 1),
-            not_null: int(row, 2) != 0,
-            default_value: text(row, 3),
-            primary_key: int(row, 4),
-            hidden: int(row, 5),
+            name: name(row, 1),
+            data_type: name(row, 2),
+            not_null: int(row, 3) != 0,
+            default_value: text(row, 4),
+            primary_key: int(row, 5),
+            hidden: int(row, 6),
         })
         .collect())
+}
+
+pub struct IndexRow {
+    pub name: String,
+    pub unique: bool,
+    /// `u` for a UNIQUE constraint, `c` for CREATE INDEX.
+    pub origin: String,
+    pub partial: bool,
+    /// None for an expression.
+    pub columns: Vec<Option<String>>,
+}
+
+/// Every index except the one behind a non-rowid primary key, ordered by name.
+pub async fn index_rows(conn: &dyn SqliteConnection, schema: &str, table: &str) -> AppResult<Vec<IndexRow>> {
+    let mut indexes = Vec::new();
+    for row in rows(conn, &pragma(schema, "index_list", table), &[]).await? {
+        if name(&row, 3) == "pk" {
+            continue;
+        }
+        let index_name = name(&row, 1);
+        let columns = rows(conn, &pragma(schema, "index_info", &index_name), &[])
+            .await?
+            .iter()
+            .map(|column| text(column, 2))
+            .collect();
+        indexes.push(IndexRow {
+            name: index_name,
+            unique: int(&row, 2) != 0,
+            origin: name(&row, 3),
+            partial: int(&row, 4) != 0,
+            columns,
+        });
+    }
+    indexes.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(indexes)
 }
 
 pub fn key_columns(columns: &[TableColumn]) -> Vec<String> {
@@ -93,15 +128,13 @@ pub async fn stored_sql(conn: &dyn SqliteConnection, schema: &str, kind: &str, o
     Ok(found.first().and_then(|row| text(row, 0)))
 }
 
+/// Backends that refuse `database_list`, like D1, only have `main`.
 pub async fn list_databases(conn: &dyn SqliteConnection) -> AppResult<Vec<DatabaseInfo>> {
-    let found = rows(conn, "SELECT name FROM pragma_database_list WHERE name <> 'temp' ORDER BY seq", &[]).await?;
-    Ok(found
-        .iter()
-        .map(|row| DatabaseInfo {
-            name: name(row, 0),
-            system: false,
-        })
-        .collect())
+    let names = match rows(conn, "PRAGMA database_list", &[]).await {
+        Ok(found) => found.iter().map(|row| name(row, 1)).filter(|name| name != "temp").collect(),
+        Err(_) => vec!["main".to_string()],
+    };
+    Ok(names.into_iter().map(|name| DatabaseInfo { name, system: false }).collect())
 }
 
 fn trigger_detail(sql: &str, table: &str) -> String {
@@ -274,29 +307,17 @@ async fn indexes(
         });
     }
 
-    let found = rows(
-        conn,
-        "SELECT l.name, l.\"unique\", l.partial, i.name FROM pragma_index_list(?1, ?2) l \
-         JOIN pragma_index_info(l.name, ?2) i WHERE l.origin <> 'pk' ORDER BY l.name, i.seqno",
-        &[param(table), param(schema)],
-    )
-    .await?;
-
-    for row in &found {
-        let index_name = name(row, 0);
-        let column = text(row, 3).unwrap_or_else(|| "(expression)".to_string());
-        match indexes.last_mut() {
-            Some(last) if last.name == index_name => last.columns.push(column),
-            _ => indexes.push(IndexDefinition {
-                name: index_name,
-                primary: false,
-                unique: int(row, 1) != 0,
-                columns: vec![column],
-                index_type: (int(row, 2) != 0).then(|| "partial".to_string()),
-            }),
-        }
-    }
-
+    indexes.extend(index_rows(conn, schema, table).await?.into_iter().map(|index| IndexDefinition {
+        name: index.name,
+        primary: false,
+        unique: index.unique,
+        columns: index
+            .columns
+            .into_iter()
+            .map(|column| column.unwrap_or_else(|| "(expression)".to_string()))
+            .collect(),
+        index_type: index.partial.then(|| "partial".to_string()),
+    }));
     Ok(indexes)
 }
 
@@ -311,30 +332,25 @@ pub struct ForeignKeyRow {
 }
 
 pub async fn foreign_key_rows(conn: &dyn SqliteConnection, schema: &str, table: &str) -> AppResult<Vec<ForeignKeyRow>> {
-    let found = rows(
-        conn,
-        "SELECT id, \"table\", \"from\", \"to\", on_update, on_delete FROM pragma_foreign_key_list(?1, ?2) \
-         ORDER BY id, seq",
-        &[param(table), param(schema)],
-    )
-    .await?;
+    let mut found = rows(conn, &pragma(schema, "foreign_key_list", table), &[]).await?;
+    found.sort_by_key(|row| (int(row, 0), int(row, 1)));
 
     let mut keys: Vec<ForeignKeyRow> = Vec::new();
     for row in &found {
         let id = int(row, 0);
-        let referenced = text(row, 3);
+        let referenced = text(row, 4);
         match keys.last_mut() {
             Some(last) if last.id == id => {
-                last.columns.push(name(row, 2));
+                last.columns.push(name(row, 3));
                 last.referenced_columns.extend(referenced);
             }
             _ => keys.push(ForeignKeyRow {
                 id,
-                columns: vec![name(row, 2)],
-                referenced_table: name(row, 1),
+                columns: vec![name(row, 3)],
+                referenced_table: name(row, 2),
                 referenced_columns: referenced.into_iter().collect(),
-                on_update: name(row, 4),
-                on_delete: name(row, 5),
+                on_update: name(row, 5),
+                on_delete: name(row, 6),
             }),
         }
     }
@@ -476,10 +492,11 @@ pub async fn database_sql(conn: &dyn SqliteConnection, schema: &str, template: S
     }
     match template {
         SqlTemplate::Create => {
-            let found = rows(conn, "SELECT file FROM pragma_database_list WHERE name = ?1", &[param(schema)]).await?;
+            let found = rows(conn, "PRAGMA database_list", &[]).await?;
             let file = found
-                .first()
-                .map(|row| name(row, 0))
+                .iter()
+                .find(|row| name(row, 1) == schema)
+                .map(|row| name(row, 2))
                 .ok_or_else(|| AppError::not_found(format!("Database {schema} not found")))?;
             Ok(format!("ATTACH DATABASE {} AS {};", string_literal(&file), quote_identifier(schema)))
         }

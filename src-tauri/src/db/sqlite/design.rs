@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::connection::SqliteConnection;
 use super::definition;
-use super::metadata::{self, PRIMARY_INDEX, foreign_key_name, int, name, param, rows, text};
+use super::metadata::{self, PRIMARY_INDEX, foreign_key_name};
 use super::sqlgen::{qualified, quote_identifier};
 use crate::db::types::{
     CollationInfo, ColumnDesign, DesignCapabilities, DesignOptions, ForeignKeyDesign, IndexColumnDesign, IndexDesign,
@@ -88,38 +88,18 @@ pub async fn load_design(conn: &dyn SqliteConnection, schema: &str, table: &str)
         });
     }
 
-    let index_rows = rows(
-        conn,
-        "SELECT l.name, l.\"unique\", l.origin, l.partial, i.name FROM pragma_index_list(?1, ?2) l \
-         JOIN pragma_index_info(l.name, ?2) i WHERE l.origin <> 'pk' ORDER BY l.name, i.seqno",
-        &[param(table), param(schema)],
-    )
-    .await?;
-
-    let mut skipped: Vec<String> = Vec::new();
-    for row in &index_rows {
-        let index_name = name(row, 0);
-        if skipped.contains(&index_name) {
-            continue;
-        }
-        let Some(column) = text(row, 4).filter(|_| int(row, 3) == 0) else {
-            indexes.retain(|index: &IndexDesign| index.name != index_name);
-            skipped.push(index_name);
+    for index in metadata::index_rows(conn, schema, table).await? {
+        let Some(columns) = index.columns.into_iter().collect::<Option<Vec<_>>>().filter(|_| !index.partial) else {
             continue;
         };
-        let column = IndexColumnDesign { name: column, length: None };
-
-        match indexes.last_mut() {
-            Some(last) if last.name == index_name => last.columns.push(column),
-            _ => indexes.push(IndexDesign {
-                original_name: Some(index_name.clone()),
-                name: index_name,
-                kind: if int(row, 1) != 0 { IndexKind::Unique } else { IndexKind::Index },
-                columns: vec![column],
-                method: None,
-                constraint: name(row, 2) == "u",
-            }),
-        }
+        indexes.push(IndexDesign {
+            original_name: Some(index.name.clone()),
+            name: index.name,
+            kind: if index.unique { IndexKind::Unique } else { IndexKind::Index },
+            columns: columns.into_iter().map(|name| IndexColumnDesign { name, length: None }).collect(),
+            method: None,
+            constraint: index.origin == "u",
+        });
     }
 
     let foreign_keys = metadata::foreign_key_rows(conn, schema, table)
