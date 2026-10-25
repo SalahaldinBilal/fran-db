@@ -85,4 +85,16 @@ pub trait SqliteConnector: Send + Sync {
     fn is_internal_table(&self, name: &str) -> bool {
         name.starts_with("sqlite_")
     }
+
+    fn catalog(&self) -> Option<String> {
+        None
+    }
+
+    async fn list_catalogs(&self) -> AppResult<Vec<String>> {
+        Ok(Vec::new())
+    }
+
+    async fn with_catalog(&self, _catalog: &str) -> AppResult<Arc<dyn SqliteConnector>> {
+        Err(AppError::general("This connection has no other databases to switch to"))
+    }
 }

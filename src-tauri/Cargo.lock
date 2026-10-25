@@ -1957,6 +1957,7 @@ dependencies = [
  "libtest-mimic",
  "mysql_async",
  "postgres-protocol",
+ "reqwest",
  "rusqlite",
  "russh",
  "rustls",

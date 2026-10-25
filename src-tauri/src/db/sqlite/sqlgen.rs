@@ -109,6 +109,27 @@ fn source_identifier(meta: &ColumnMeta) -> AppResult<String> {
 }
 
 const MAX_ROWS_PER_STATEMENT: usize = 500;
+/// Leaves room under D1's 100 KB statement limit for the statement around the rows.
+const MAX_ROW_BYTES_PER_STATEMENT: usize = 90_000;
+
+fn chunks<T>(rows: &[T], size: impl Fn(&T) -> usize) -> Vec<&[T]> {
+    let mut chunks = Vec::new();
+    let mut start = 0;
+    let mut bytes = 0;
+    for (index, row) in rows.iter().enumerate() {
+        let row_bytes = size(row);
+        if index > start && (index - start == MAX_ROWS_PER_STATEMENT || bytes + row_bytes > MAX_ROW_BYTES_PER_STATEMENT) {
+            chunks.push(&rows[start..index]);
+            start = index;
+            bytes = 0;
+        }
+        bytes += row_bytes;
+    }
+    if start < rows.len() {
+        chunks.push(&rows[start..]);
+    }
+    chunks
+}
 
 struct KeyedRow {
     key: Vec<Option<String>>,
@@ -265,11 +286,11 @@ pub fn row_changes_sql(
 
     let mut statements = single_updates;
     for (head, rows) in &updates {
-        for chunk in rows.chunks(MAX_ROWS_PER_STATEMENT) {
+        for chunk in chunks(rows, |row| row.tuple.len()) {
             statements.push(keyed(head, chunk)?);
         }
     }
-    for chunk in deletes.chunks(MAX_ROWS_PER_STATEMENT) {
+    for chunk in chunks(&deletes, |row| row.tuple.len()) {
         statements.push(keyed(&format!("DELETE FROM {target}"), chunk)?);
     }
     statements.extend(single_deletes);
@@ -278,7 +299,7 @@ pub fn row_changes_sql(
             statements.push(format!("INSERT INTO {target} DEFAULT VALUES"));
             continue;
         }
-        for chunk in rows.chunks(MAX_ROWS_PER_STATEMENT) {
+        for chunk in chunks(rows, String::len) {
             statements.push(format!("INSERT INTO {target} ({names}) VALUES {}", chunk.join(", ")));
         }
     }
@@ -348,6 +369,21 @@ mod tests {
         ];
         let statements = row_changes_sql("main", "t", &columns, &changes).unwrap();
         assert_eq!(statements, vec![r#"DELETE FROM "main"."t" WHERE ("a", "b") IN (VALUES (1, 'x'), (2, 'y'))"#]);
+    }
+
+    #[test]
+    fn splits_large_statements() {
+        let columns = vec![
+            column("id", ValueCategory::Integer, true),
+            column("body", ValueCategory::Text, false),
+        ];
+        let body = "x".repeat(40_000);
+        let changes: Vec<RowChange> = (0..3)
+            .map(|_| RowChange::Insert { values: vec![CellEdit { column: 1, value: Some(body.clone()) }] })
+            .collect();
+        let statements = row_changes_sql("main", "t", &columns, &changes).unwrap();
+        assert_eq!(statements.len(), 2);
+        assert!(statements.iter().all(|statement| statement.len() < 100_000));
     }
 
     #[test]

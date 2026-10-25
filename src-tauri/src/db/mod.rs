@@ -20,6 +20,7 @@ pub enum DatabaseKind {
     Mysql,
     Postgres,
     Sqlite,
+    D1,
 }
 
 /// Per-kind connection settings. Adding a database means adding a variant here
@@ -30,6 +31,7 @@ pub enum DriverOptions {
     Mysql(mysql::MysqlOptions),
     Postgres(postgres::PostgresOptions),
     Sqlite(sqlite::SqliteOptions),
+    D1(sqlite::d1::D1Options),
 }
 
 impl DriverOptions {
@@ -38,6 +40,7 @@ impl DriverOptions {
             Self::Mysql(_) => DatabaseKind::Mysql,
             Self::Postgres(_) => DatabaseKind::Postgres,
             Self::Sqlite(_) => DatabaseKind::Sqlite,
+            Self::D1(_) => DatabaseKind::D1,
         }
     }
 
@@ -46,6 +49,7 @@ impl DriverOptions {
             Self::Mysql(options) => options.required_secrets(),
             Self::Postgres(options) => options.required_secrets(),
             Self::Sqlite(options) => options.required_secrets(),
+            Self::D1(options) => options.required_secrets(),
         }
     }
 
@@ -54,6 +58,7 @@ impl DriverOptions {
             Self::Mysql(options) => options.optional_secrets(),
             Self::Postgres(options) => options.optional_secrets(),
             Self::Sqlite(options) => options.optional_secrets(),
+            Self::D1(options) => options.optional_secrets(),
         }
     }
 
@@ -70,6 +75,7 @@ impl DriverOptions {
                 postgres::PostgresSession::connect(options, secrets, known_hosts).await?,
             )),
             Self::Sqlite(options) => Ok(Box::new(sqlite::SqliteSession::connect(options).await?)),
+            Self::D1(options) => Ok(Box::new(sqlite::d1::connect(options, secrets).await?)),
         }
     }
 }
@@ -78,6 +84,6 @@ pub fn split_statements(kind: DatabaseKind, sql: &str) -> Vec<StatementRange> {
     match kind {
         DatabaseKind::Mysql => mysql::splitter::split(sql),
         DatabaseKind::Postgres => postgres::splitter::split(sql),
-        DatabaseKind::Sqlite => sqlite::splitter::split(sql),
+        DatabaseKind::Sqlite | DatabaseKind::D1 => sqlite::splitter::split(sql),
     }
 }
