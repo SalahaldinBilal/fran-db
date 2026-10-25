@@ -122,3 +122,25 @@ jobs:
             exit 1
           fi
           git push origin "$GITHUB_SHA:refs/heads/stable"
+
+  nix:
+    name: Nix (${{ matrix.runner }})
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: Mic92/niks3-action@v1
+        continue-on-error: true
+        with:
+          server-url: https://cache.kirsi.dev
+
+      - name: Build
+        run: nix build --print-build-logs

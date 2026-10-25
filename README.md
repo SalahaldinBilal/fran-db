@@ -35,6 +35,15 @@ environment.systemPackages = [
 
 Rebuild with `nixos-rebuild switch`. To update, run `nix flake update fran-db` and rebuild. The app tells you when a new version is out.
 
+Every release is built for x86_64 and aarch64 Linux and pushed to a binary cache. Add it so Nix downloads the build instead of compiling it:
+
+```nix
+nix.settings = {
+  extra-substituters = ["https://cache.kirsi.dev"];
+  extra-trusted-public-keys = ["cache.kirsi.dev-1:kobyAUhAcq9OMNdNJCX6R0zz5GZ7OGv8SP7uJxcH8Cw="];
+};
+```
+
 ## Features
 
 **Connections**
