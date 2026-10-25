@@ -21,7 +21,7 @@ No frontend tests or linters are configured.
 
 - User-facing changes go under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog, `### Added` / `### Changed` / `### Fixed` with `- ` bullets). Those notes are shown in the app's update panel.
 - `npm run version:bump <version>` sets the version in `package.json`, `src-tauri/Cargo.toml` and `tauri.conf.json`, and turns the Unreleased section into a dated one. Commit, then push a `v<version>` tag.
-- The tag runs `.github/workflows/release.yml`: it checks the tag against `tauri.conf.json`, builds Windows (NSIS), macOS (universal, unsigned) and Linux (AppImage), then `scripts/deploy.ts` uploads to the `frandb-files` B2 bucket (served at `frandb.won.fyi`), creates the GitHub release with the installers attached, and writes `updater/latest.json` last.
+- The tag runs `.github/workflows/release.yml`: it checks the tag against `tauri.conf.json`, builds Windows (NSIS), macOS (universal, unsigned) and Linux (AppImage), then `scripts/deploy.ts` uploads to the `frandb-files` B2 bucket (served at `frandb.won.fyi`), creates the GitHub release with the installers attached, and writes `updater/latest.json` last. After that the `stable` branch is pushed to the tagged commit, which must be on main.
 - The in-app updater (`states/updaterState.ts`, Settings > Updates) reads that manifest. Update files are signed with the `TAURI_SIGNING_PRIVATE_KEY` secret, which must match `plugins.updater.pubkey`.
 - Repo secrets: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`.
 
