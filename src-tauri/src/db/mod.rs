@@ -3,6 +3,7 @@ pub mod mysql;
 pub mod postgres;
 pub mod session;
 pub mod sessions;
+pub mod sqlite;
 pub mod types;
 
 use serde::{Deserialize, Serialize};
@@ -18,6 +19,7 @@ use types::StatementRange;
 pub enum DatabaseKind {
     Mysql,
     Postgres,
+    Sqlite,
 }
 
 /// Per-kind connection settings. Adding a database means adding a variant here
@@ -27,6 +29,7 @@ pub enum DatabaseKind {
 pub enum DriverOptions {
     Mysql(mysql::MysqlOptions),
     Postgres(postgres::PostgresOptions),
+    Sqlite(sqlite::SqliteOptions),
 }
 
 impl DriverOptions {
@@ -34,6 +37,7 @@ impl DriverOptions {
         match self {
             Self::Mysql(_) => DatabaseKind::Mysql,
             Self::Postgres(_) => DatabaseKind::Postgres,
+            Self::Sqlite(_) => DatabaseKind::Sqlite,
         }
     }
 
@@ -41,6 +45,7 @@ impl DriverOptions {
         match self {
             Self::Mysql(options) => options.required_secrets(),
             Self::Postgres(options) => options.required_secrets(),
+            Self::Sqlite(options) => options.required_secrets(),
         }
     }
 
@@ -48,6 +53,7 @@ impl DriverOptions {
         match self {
             Self::Mysql(options) => options.optional_secrets(),
             Self::Postgres(options) => options.optional_secrets(),
+            Self::Sqlite(options) => options.optional_secrets(),
         }
     }
 
@@ -63,6 +69,7 @@ impl DriverOptions {
             Self::Postgres(options) => Ok(Box::new(
                 postgres::PostgresSession::connect(options, secrets, known_hosts).await?,
             )),
+            Self::Sqlite(options) => Ok(Box::new(sqlite::SqliteSession::connect(options).await?)),
         }
     }
 }
@@ -71,5 +78,6 @@ pub fn split_statements(kind: DatabaseKind, sql: &str) -> Vec<StatementRange> {
     match kind {
         DatabaseKind::Mysql => mysql::splitter::split(sql),
         DatabaseKind::Postgres => postgres::splitter::split(sql),
+        DatabaseKind::Sqlite => sqlite::splitter::split(sql),
     }
 }
