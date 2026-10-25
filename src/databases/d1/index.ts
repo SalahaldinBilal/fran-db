@@ -17,6 +17,7 @@ const d1Module: DatabaseModule<"d1"> = {
   describeTarget: options => `${options.database.trim() || "(no database)"} on D1`,
   suggestName: options => options.database.trim() || "Cloudflare D1",
   methodLabel: () => "HTTP API",
+  sshTarget: () => null,
   defaultDatabase: () => "main",
 };
 

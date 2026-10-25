@@ -34,6 +34,8 @@ export type DatabaseModule<K extends DatabaseKind> = {
   describeTarget: (options: OptionsByKind[K]) => string,
   suggestName: (options: OptionsByKind[K]) => string,
   methodLabel: (options: OptionsByKind[K]) => string,
+  // The database endpoint behind the SSH tunnel, when the connection uses one. Port forwards go there.
+  sshTarget: (options: OptionsByKind[K]) => { host: string, port: number } | null,
   defaultDatabase: (options: OptionsByKind[K]) => string | null,
   sqlDialect: SQLDialect,
   quoteIdentifier: (name: string) => string,

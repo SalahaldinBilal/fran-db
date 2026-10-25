@@ -7,6 +7,7 @@ import SettingsModal from "./components/SettingsModal/SettingsModal";
 import Toasts from "./components/Toasts/Toasts";
 import ContextMenuHost from "./components/ContextMenu/ContextMenuHost";
 import Prompts from "./components/Prompts/Prompts";
+import PortForwardModal from "./components/PortForwardModal/PortForwardModal";
 import Home from "./pages/Home/Home";
 import Workspace from "./pages/Workspace/Workspace";
 import useWorkspaceState, { HOME_TAB_ID } from "./states/workspaceState";
@@ -115,6 +116,7 @@ function App() {
       </main>
       <SettingsModal show={settingsOpen()} onClose={() => setSettingsOpen(false)} />
       <Prompts />
+      <PortForwardModal />
       <ContextMenuHost />
       <Toasts />
     </div>

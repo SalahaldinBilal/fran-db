@@ -109,6 +109,7 @@ const mysqlModule: DatabaseModule<"mysql"> = {
   describeTarget,
   suggestName,
   methodLabel,
+  sshTarget: options => (options.method === "sshTunnel" ? { host: options.host, port: options.port } : null),
   defaultDatabase: options => options.defaultSchema.trim() || null,
   sqlDialect: MySQL,
   quoteIdentifier,

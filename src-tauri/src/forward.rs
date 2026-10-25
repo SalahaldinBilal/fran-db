@@ -20,13 +20,20 @@ impl Drop for LocalForward {
 }
 
 impl LocalForward {
-    pub async fn start<Open, Opening, Remote>(open_remote: Open) -> io::Result<Self>
+    pub async fn start<Open, Opening, Remote>(port: u16, open_remote: Open) -> io::Result<Self>
     where
         Open: Fn(SocketAddr) -> Opening + Send + Sync + 'static,
         Opening: Future<Output = io::Result<Remote>> + Send + 'static,
         Remote: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
-        let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
+        let listener = TcpListener::bind(("127.0.0.1", port))
+            .await
+            .map_err(|error| {
+                io::Error::new(
+                    error.kind(),
+                    format!("Couldn't listen on 127.0.0.1:{port}: {error}"),
+                )
+            })?;
         let port = listener.local_addr()?.port();
         let open_remote = Arc::new(open_remote);
 
@@ -46,7 +53,9 @@ impl LocalForward {
 }
 
 #[cfg(windows)]
-pub async fn open_named_pipe(path: &str) -> io::Result<tokio::net::windows::named_pipe::NamedPipeClient> {
+pub async fn open_named_pipe(
+    path: &str,
+) -> io::Result<tokio::net::windows::named_pipe::NamedPipeClient> {
     use std::time::Duration;
     use tokio::net::windows::named_pipe::ClientOptions;
 
@@ -57,7 +66,9 @@ pub async fn open_named_pipe(path: &str) -> io::Result<tokio::net::windows::name
     loop {
         match ClientOptions::new().open(path) {
             Ok(client) => return Ok(client),
-            Err(error) if error.raw_os_error() == Some(ERROR_PIPE_BUSY) && retries < MAX_BUSY_RETRIES => {
+            Err(error)
+                if error.raw_os_error() == Some(ERROR_PIPE_BUSY) && retries < MAX_BUSY_RETRIES =>
+            {
                 retries += 1;
                 tokio::time::sleep(Duration::from_millis(50)).await;
             }

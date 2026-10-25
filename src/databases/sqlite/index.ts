@@ -56,6 +56,7 @@ const sqliteModule: DatabaseModule<"sqlite"> = {
   describeTarget: options => options.path.trim() || "(no file)",
   suggestName: options => fileName(options.path.trim()) || "SQLite",
   methodLabel: options => (options.readOnly ? "File, read only" : "File"),
+  sshTarget: () => null,
   defaultDatabase: () => "main",
   sqlDialect: SQLite,
   quoteIdentifier,

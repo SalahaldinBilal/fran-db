@@ -1,3 +1,4 @@
+pub mod forwards;
 pub mod known_hosts;
 
 use std::{
@@ -163,6 +164,7 @@ impl SshTunnel {
         known_hosts: &KnownHosts,
         target_host: &str,
         target_port: u16,
+        local_port: u16,
         timeout: Duration,
     ) -> AppResult<Self> {
         if options.host.trim().is_empty() {
@@ -194,7 +196,8 @@ impl SshTunnel {
             Err(_) => return Err(AppError::ssh("Timed out connecting to the SSH server")),
             Ok(Err(error)) => {
                 let rejected = rejection.lock().ok().and_then(|mut slot| slot.take());
-                return Err(rejected.unwrap_or_else(|| AppError::ssh(format!("SSH connection failed: {error}"))));
+                return Err(rejected
+                    .unwrap_or_else(|| AppError::ssh(format!("SSH connection failed: {error}"))));
             }
             Ok(Ok(handle)) => handle,
         };
@@ -204,7 +207,10 @@ impl SshTunnel {
             (_, Some(key)) => {
                 let hash = rsa_hash(&mut handle).await?;
                 handle
-                    .authenticate_publickey(&options.user, PrivateKeyWithHashAlg::new(Arc::new(key), hash))
+                    .authenticate_publickey(
+                        &options.user,
+                        PrivateKeyWithHashAlg::new(Arc::new(key), hash),
+                    )
                     .await
                     .map_err(auth_failed)?
                     .success()
@@ -232,7 +238,7 @@ impl SshTunnel {
         let forward_handle = handle.clone();
         let target_host = target_host.to_string();
 
-        let forward = LocalForward::start(move |peer| {
+        let forward = LocalForward::start(local_port, move |peer| {
             let handle = forward_handle.clone();
             let target_host = target_host.clone();
             async move {
@@ -293,7 +299,9 @@ async fn connect_agent(socket: &str) -> AppResult<Agent> {
         return AgentClient::connect_named_pipe(pipe)
             .await
             .map(AgentClient::dynamic)
-            .map_err(|error| AppError::ssh(format!("Couldn't reach the SSH agent at {pipe}: {error}")));
+            .map_err(|error| {
+                AppError::ssh(format!("Couldn't reach the SSH agent at {pipe}: {error}"))
+            });
     }
 
     match AgentClient::connect_named_pipe(OPENSSH_AGENT_PIPE).await {
@@ -305,25 +313,39 @@ async fn connect_agent(socket: &str) -> AppResult<Agent> {
 }
 
 /// Offers each of the agent's keys in turn, like OpenSSH does.
-async fn authenticate_with_agent(handle: &mut client::Handle<HostKeyCheck>, options: &SshOptions) -> AppResult<bool> {
+async fn authenticate_with_agent(
+    handle: &mut client::Handle<HostKeyCheck>,
+    options: &SshOptions,
+) -> AppResult<bool> {
     let mut agent = connect_agent(&options.agent_socket).await?;
-    let identities = agent
-        .request_identities()
-        .await
-        .map_err(|error| AppError::ssh(format!("Couldn't read the keys from the SSH agent: {error}")))?;
+    let identities = agent.request_identities().await.map_err(|error| {
+        AppError::ssh(format!(
+            "Couldn't read the keys from the SSH agent: {error}"
+        ))
+    })?;
     if identities.is_empty() {
-        return Err(AppError::ssh("The SSH agent has no keys. Add one with ssh-add."));
+        return Err(AppError::ssh(
+            "The SSH agent has no keys. Add one with ssh-add.",
+        ));
     }
 
     let rsa = rsa_hash(handle).await?;
     for identity in identities {
-        let hash = if identity.public_key().algorithm().is_rsa() { rsa } else { None };
+        let hash = if identity.public_key().algorithm().is_rsa() {
+            rsa
+        } else {
+            None
+        };
         let result = match identity {
             AgentIdentity::PublicKey { key, .. } => {
-                handle.authenticate_publickey_with(&options.user, key, hash, &mut agent).await
+                handle
+                    .authenticate_publickey_with(&options.user, key, hash, &mut agent)
+                    .await
             }
             AgentIdentity::Certificate { certificate, .. } => {
-                handle.authenticate_certificate_with(&options.user, certificate, hash, &mut agent).await
+                handle
+                    .authenticate_certificate_with(&options.user, certificate, hash, &mut agent)
+                    .await
             }
         }
         .map_err(auth_failed)?;
@@ -338,7 +360,10 @@ async fn authenticate_with_agent(handle: &mut client::Handle<HostKeyCheck>, opti
 fn load_key(options: &SshOptions, secrets: &SecretBag) -> AppResult<russh::keys::PrivateKey> {
     let path = Path::new(&options.key_file);
     if options.key_file.trim().is_empty() || !path.is_file() {
-        return Err(AppError::ssh(format!("SSH key file not found: {}", options.key_file)));
+        return Err(AppError::ssh(format!(
+            "SSH key file not found: {}",
+            options.key_file
+        )));
     }
 
     match secrets.get(SSH_PASSPHRASE_SLOT) {

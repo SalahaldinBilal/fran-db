@@ -91,4 +91,11 @@ impl MysqlOptions {
             _ => Vec::new(),
         }
     }
+
+    pub fn ssh_target(&self) -> Option<(&SshOptions, &str, u16)> {
+        match self.method {
+            MysqlConnectMethod::SshTunnel => Some((&self.ssh, self.host.trim(), self.port)),
+            _ => None,
+        }
+    }
 }

@@ -20,6 +20,8 @@ pub struct ConnectionProfile {
     pub color: Option<String>,
     #[serde(default)]
     pub color_fill: bool,
+    #[serde(default)]
+    pub forward_port: Option<u16>,
     #[serde(flatten)]
     pub driver: DriverOptions,
 }
@@ -34,8 +36,13 @@ pub type ConnectionStore = JsonStore<ConnectionsFile>;
 
 impl ConnectionStore {
     pub fn find(&self, id: &str) -> AppResult<ConnectionProfile> {
-        self.read(|file| file.connections.iter().find(|profile| profile.id == id).cloned())?
-            .ok_or_else(|| AppError::not_found("Connection not found"))
+        self.read(|file| {
+            file.connections
+                .iter()
+                .find(|profile| profile.id == id)
+                .cloned()
+        })?
+        .ok_or_else(|| AppError::not_found("Connection not found"))
     }
 }
 
@@ -71,7 +78,10 @@ pub struct SecretBag {
 impl SecretBag {
     pub fn new(values: HashMap<String, String>) -> Self {
         Self {
-            values: values.into_iter().map(|(slot, value)| (slot, Zeroizing::new(value))).collect(),
+            values: values
+                .into_iter()
+                .map(|(slot, value)| (slot, Zeroizing::new(value)))
+                .collect(),
         }
     }
 

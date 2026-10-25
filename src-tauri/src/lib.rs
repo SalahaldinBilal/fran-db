@@ -19,7 +19,7 @@ use db::sessions::SessionManager;
 use saved_queries::SavedQueryStore;
 use settings::SettingsStore;
 use tab_state::TabStateStore;
-use ssh::known_hosts::KnownHosts;
+use ssh::{forwards::PortForwards, known_hosts::KnownHosts};
 use vault::Vault;
 
 pub fn run() {
@@ -42,6 +42,7 @@ pub fn run() {
             app.manage(Arc::new(TabStateStore::load(data_dir.join("tab_state.json"))));
             app.manage(Arc::new(SettingsStore::load(data_dir.join("settings.json"))));
             app.manage(SessionManager::default());
+            app.manage(PortForwards::default());
             splash::open(app.handle())?;
             Ok(())
         })
@@ -56,6 +57,9 @@ pub fn run() {
             connections::commands::set_connection_secret,
             connections::commands::clear_connection_secret,
             ssh::known_hosts::trust_host_key,
+            ssh::forwards::start_port_forward,
+            ssh::forwards::stop_port_forward,
+            ssh::forwards::list_port_forwards,
             db::commands::open_session,
             db::commands::test_connection,
             db::commands::close_session,

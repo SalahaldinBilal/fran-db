@@ -1,0 +1,16 @@
+.Form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.Message {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-md);
+
+  code {
+    font-family: var(--font-mono);
+    color: var(--text-strong);
+  }
+}

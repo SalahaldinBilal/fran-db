@@ -142,7 +142,7 @@ async fn local_socket_endpoint(raw: &str) -> AppResult<(Endpoint, Option<Transpo
             .map_err(|error| AppError::general(format!("Could not open pipe {path}: {error}")))?,
     );
 
-    let forward = LocalForward::start(move |_| {
+    let forward = LocalForward::start(0, move |_| {
         let path = path.clone();
         async move { open_named_pipe(&path).await }
     })
@@ -257,6 +257,7 @@ impl MysqlSession {
                     known_hosts,
                     options.host.trim(),
                     options.port,
+                    0,
                     connect_timeout,
                 )
                 .await?;
