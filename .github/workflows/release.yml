@@ -131,7 +131,7 @@ jobs:
       - uses: Mic92/niks3-action@v1
         continue-on-error: true
         with:
-          server-url: https://cache.kirsi.dev
+          server-url: https://niks3.kirsi.dev
 
       - name: Build
         run: nix build --print-build-logs
