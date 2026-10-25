@@ -16,14 +16,16 @@ The macOS build isn't signed, so macOS blocks it the first time. Open System Set
 
 ### NixOS
 
-Add the flake to your system flake's inputs:
+Add the flake to your system flake's inputs. The `stable` branch always points at the latest release:
 
 ```nix
 inputs.fran-db = {
-  url = "github:SalahaldinBilal/fran-db";
+  url = "github:SalahaldinBilal/fran-db/stable";
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
+
+To stay on one version, use its tag instead, like `github:SalahaldinBilal/fran-db/v0.1.1`.
 
 Then add the package to your configuration, with `inputs` passed in through `specialArgs`:
 
