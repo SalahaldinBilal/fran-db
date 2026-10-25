@@ -71,6 +71,16 @@
   &:not(:has(.Close)) {
     padding-right: 14px;
   }
+
+  // A layer over the background, so hover and active colors still show through.
+  &.Tinted {
+    --tint-layer: rgb(from var(--tint) r g b / 16%);
+    background-image: linear-gradient(var(--tint-layer), var(--tint-layer));
+
+    &.Active {
+      --tint-layer: rgb(from var(--tint) r g b / 24%);
+    }
+  }
 }
 
 .Dot {
@@ -195,12 +205,16 @@
 
       &::before {
         left: -8px;
-        background: radial-gradient(circle at 0 0, transparent 7.5px, var(--surface) 8px);
+        background:
+          radial-gradient(circle at 0 0, transparent 7.5px, var(--tint-layer, transparent) 8px),
+          radial-gradient(circle at 0 0, transparent 7.5px, var(--surface) 8px);
       }
 
       &::after {
         right: -8px;
-        background: radial-gradient(circle at 100% 0, transparent 7.5px, var(--surface) 8px);
+        background:
+          radial-gradient(circle at 100% 0, transparent 7.5px, var(--tint-layer, transparent) 8px),
+          radial-gradient(circle at 100% 0, transparent 7.5px, var(--surface) 8px);
       }
     }
   }

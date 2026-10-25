@@ -1,0 +1,82 @@
+.Popover {
+  position: fixed;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 220px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-float);
+  outline: none;
+  animation: drop-in var(--duration) var(--ease);
+}
+
+.Plane,
+.Hue {
+  position: relative;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+  cursor: crosshair;
+  touch-action: none;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), var(--focus-ring);
+  }
+}
+
+.Plane {
+  height: 140px;
+  background:
+    linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, var(--hue));
+}
+
+.Hue {
+  height: 12px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  cursor: ew-resize;
+
+  .Thumb {
+    top: 50%;
+  }
+}
+
+.Thumb {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--color);
+  box-shadow: 0 0 0 2px #fff, 0 1px 4px rgb(0 0 0 / 50%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.Footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  > :last-child {
+    flex: 1;
+  }
+}
+
+.Preview {
+  width: 30px;
+  height: var(--control-height);
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--color);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}

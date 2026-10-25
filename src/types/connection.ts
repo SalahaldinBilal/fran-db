@@ -105,6 +105,7 @@ export type ConnectionProfile = {
   id: string,
   name: string,
   color: string | null,
+  colorFill: boolean,
 } & DriverOptions;
 
 export type VaultStatus = {

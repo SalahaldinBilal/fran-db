@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - SQLite databases. Open a database file, optionally read only, browse and edit its tables, and run queries. Attached databases show in the tree next to `main`. Foreign keys are enforced by default, and you can turn that off per connection. When a change fails because an index or trigger calls a function that only the app that created the database has, the error names that index or trigger and explains why.
 - Cloudflare D1 databases, through Cloudflare's API with an account ID and an API token. Browse, query and edit them like SQLite, and switch to the account's other D1 databases without reconnecting. D1 doesn't allow BEGIN and COMMIT, so saved edits are sent as one batch that applies all together or not at all.
 - The table designer works with SQLite tables. It can rename tables and columns, add and drop columns, and change indexes. SQLite can't change a column's type, NULL setting or default in place, so the designer tells you when a change would mean rebuilding the table.
+- Connections can use a custom color, picked with the eyedropper swatch after the presets.
+- A connection's color can tint its whole tab and connection card instead of just the dot and icon.
 
 ## [0.1.1] - 2026-10-24
 

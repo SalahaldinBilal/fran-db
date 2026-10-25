@@ -73,7 +73,7 @@ function ConnectionCard(props: ConnectionCardProps) {
   return (
     <div
       class={styles.Card}
-      classList={{ [styles.Connecting]: connecting() }}
+      classList={{ [styles.Connecting]: connecting(), [styles.Filled]: props.profile.colorFill && props.profile.color !== null }}
       style={{ "--card-color": props.profile.color ?? "var(--accent)" }}
       role="button"
       tabIndex={0}

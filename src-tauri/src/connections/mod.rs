@@ -18,6 +18,8 @@ pub struct ConnectionProfile {
     pub name: String,
     #[serde(default)]
     pub color: Option<String>,
+    #[serde(default)]
+    pub color_fill: bool,
     #[serde(flatten)]
     pub driver: DriverOptions,
 }
