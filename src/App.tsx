@@ -42,7 +42,7 @@ function App() {
         label: session?.profile.name ?? "Connection",
         icon: session?.profile.color ? undefined : Database,
         dot: session?.profile.color,
-        tint: session?.profile.colorFill ? session.profile.color : null,
+        tint: useSettingsState.settings.colorFill ? session?.profile.color : null,
         closable: true,
       };
     }),

@@ -9,6 +9,7 @@ import useContextMenuState, { MenuItem } from "@core/states/contextMenuState";
 import usePromptState from "@core/states/promptState";
 import useToastState from "@core/states/toastState";
 import usePortForwardState from "@core/states/portForwardState";
+import useSettingsState from "@core/states/settingsState";
 import Button from "@core/components/Button/Button";
 import Spinner from "@core/components/Spinner/Spinner";
 import { tooltip } from "@core/components/Tooltip/Tooltip";
@@ -25,6 +26,7 @@ function ConnectionCard(props: ConnectionCardProps) {
   const { confirm } = usePromptState;
   const { pushError } = useToastState;
   const forwards = usePortForwardState;
+  const { settings } = useSettingsState;
 
   const details = createMemo(() =>
     withDatabaseModule(props.profile, (module, options) => ({
@@ -79,7 +81,7 @@ function ConnectionCard(props: ConnectionCardProps) {
   return (
     <div
       class={styles.Card}
-      classList={{ [styles.Connecting]: connecting(), [styles.Filled]: props.profile.colorFill && props.profile.color !== null }}
+      classList={{ [styles.Connecting]: connecting(), [styles.Filled]: settings.colorFill && props.profile.color !== null }}
       style={{ "--card-color": props.profile.color ?? "var(--accent)" }}
       role="button"
       tabIndex={0}

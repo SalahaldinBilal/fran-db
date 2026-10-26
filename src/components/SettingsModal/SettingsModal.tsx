@@ -74,36 +74,6 @@ function SettingsModal(props: SettingsModalProps) {
         </Show>
 
         <section class={styles.Section}>
-          <h3>Results</h3>
-          <div class={styles.Setting}>
-            <div class={styles.Text}>
-              <div class={styles.Name}>Edit cells in</div>
-              <div class={styles.Hint}>{EDIT_MODE_HINTS[settings.cellEditMode]}</div>
-            </div>
-            <SegmentedControl<CellEditMode>
-              value={settings.cellEditMode}
-              onChange={mode => update({ cellEditMode: mode })}
-              options={[
-                { value: "viewer", label: "Viewer" },
-                { value: "inline", label: "The cell" },
-              ]}
-            />
-          </div>
-          <div class={styles.Setting}>
-            <div class={styles.Text}>
-              <div class={styles.Name}>Run the query when opening a table</div>
-              <div class={styles.Hint}>
-                Double-clicking a table, or Query table in its menu, opens a SELECT for it in a query tab. With this on, the SELECT runs right away.
-              </div>
-            </div>
-            <Toggle
-              checked={settings.runTableQueryOnOpen}
-              onChange={checked => update({ runTableQueryOnOpen: checked })}
-            />
-          </div>
-        </section>
-
-        <section class={styles.Section}>
           <h3>Updates</h3>
           <div class={styles.Setting}>
             <div class={styles.Text}>
@@ -144,6 +114,49 @@ function SettingsModal(props: SettingsModalProps) {
           <Show when={releaseNotes()}>
             {notes => <ReleaseNotes notes={notes()} />}
           </Show>
+        </section>
+
+        <section class={styles.Section}>
+          <h3>Appearance</h3>
+          <div class={styles.Setting}>
+            <div class={styles.Text}>
+              <div class={styles.Name}>Fill with the connection color</div>
+              <div class={styles.Hint}>
+                A connection with a color tints its whole tab and connection card. Turn this off to show the color only on the dot and icon.
+              </div>
+            </div>
+            <Toggle checked={settings.colorFill} onChange={checked => update({ colorFill: checked })} />
+          </div>
+        </section>
+
+        <section class={styles.Section}>
+          <h3>Results</h3>
+          <div class={styles.Setting}>
+            <div class={styles.Text}>
+              <div class={styles.Name}>Edit cells in</div>
+              <div class={styles.Hint}>{EDIT_MODE_HINTS[settings.cellEditMode]}</div>
+            </div>
+            <SegmentedControl<CellEditMode>
+              value={settings.cellEditMode}
+              onChange={mode => update({ cellEditMode: mode })}
+              options={[
+                { value: "viewer", label: "Viewer" },
+                { value: "inline", label: "The cell" },
+              ]}
+            />
+          </div>
+          <div class={styles.Setting}>
+            <div class={styles.Text}>
+              <div class={styles.Name}>Run the query when opening a table</div>
+              <div class={styles.Hint}>
+                Double-clicking a table, or Query table in its menu, opens a SELECT for it in a query tab. With this on, the SELECT runs right away.
+              </div>
+            </div>
+            <Toggle
+              checked={settings.runTableQueryOnOpen}
+              onChange={checked => update({ runTableQueryOnOpen: checked })}
+            />
+          </div>
         </section>
       </div>
     </Modal>

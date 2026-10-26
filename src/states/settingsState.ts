@@ -8,6 +8,7 @@ export type CellEditMode = "viewer" | "inline";
 export type AppSettings = {
   cellEditMode: CellEditMode,
   runTableQueryOnOpen: boolean,
+  colorFill: boolean,
 };
 
 const CELL_EDIT_MODES: readonly CellEditMode[] = ["viewer", "inline"];
@@ -15,6 +16,7 @@ const CELL_EDIT_MODES: readonly CellEditMode[] = ["viewer", "inline"];
 export const DEFAULT_SETTINGS: AppSettings = {
   cellEditMode: "viewer",
   runTableQueryOnOpen: true,
+  colorFill: true,
 };
 
 // Keys missing from an older file, or holding values this version doesn't know, take the default.
@@ -27,6 +29,7 @@ function fromStored(stored: unknown): AppSettings {
     runTableQueryOnOpen: typeof values.runTableQueryOnOpen === "boolean"
       ? values.runTableQueryOnOpen
       : DEFAULT_SETTINGS.runTableQueryOnOpen,
+    colorFill: typeof values.colorFill === "boolean" ? values.colorFill : DEFAULT_SETTINGS.colorFill,
   };
 }
 

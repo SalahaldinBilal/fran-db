@@ -19,8 +19,6 @@ pub struct ConnectionProfile {
     #[serde(default)]
     pub color: Option<String>,
     #[serde(default)]
-    pub color_fill: bool,
-    #[serde(default)]
     pub forward_port: Option<u16>,
     #[serde(flatten)]
     pub driver: DriverOptions,

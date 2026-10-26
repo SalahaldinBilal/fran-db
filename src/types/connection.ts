@@ -105,7 +105,6 @@ export type ConnectionProfile = {
   id: string,
   name: string,
   color: string | null,
-  colorFill: boolean,
   forwardPort: number | null,
 } & DriverOptions;
 

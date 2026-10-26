@@ -16,7 +16,6 @@ import Field, { FieldRow } from "@core/components/Field/Field";
 import Input from "@core/components/Input/Input";
 import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
-import Switch from "@core/components/Switch/Switch";
 import ColorPicker from "@core/components/ColorPicker/ColorPicker";
 import { tooltip } from "@core/components/Tooltip/Tooltip";
 
@@ -31,7 +30,7 @@ export type ConnectionEditorProps = {
 type TestResult = { ok: boolean, message: string };
 
 function blankProfile(kind: DatabaseKind): ConnectionProfile {
-  return { id: "", name: "", color: null, colorFill: false, forwardPort: null, ...defaultDriver(kind) };
+  return { id: "", name: "", color: null, forwardPort: null, ...defaultDriver(kind) };
 }
 
 function ConnectionEditor(props: ConnectionEditorProps) {
@@ -233,14 +232,6 @@ function ConnectionEditor(props: ConnectionEditorProps) {
                 />
               )}
             </Show>
-            <span class={styles.Fill}>
-              <Switch
-                checked={draft.colorFill}
-                disabled={draft.color === null}
-                onChange={checked => setDraft("colorFill", checked)}
-                label="Color the whole tab and card"
-              />
-            </span>
           </div>
         </Field>
 
