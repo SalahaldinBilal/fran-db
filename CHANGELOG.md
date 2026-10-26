@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-26
+
 ### Added
 
 - Each database (or schema on PostgreSQL) shows its total size next to its name in the tree.

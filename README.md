@@ -50,8 +50,10 @@ nix.settings = {
 
 **Connections**
 - TCP, a Unix socket, a Windows named pipe (MySQL only), or TCP through an SSH tunnel with a password, a key file or your SSH agent
+- SQLite files, and Cloudflare D1 through Cloudflare's API
 - SSL modes from "if available" up to full certificate and host name checks
 - SSH host keys are checked against the ones you've trusted before, and a new or changed key asks first
+- Port forwarding through an SSH tunnel
 - Passwords and key passphrases are kept in an encrypted file whose key lives in the OS keychain
 - On PostgreSQL, switch to another database in the same connection without logging in again
 
@@ -62,7 +64,7 @@ nix.settings = {
 - Saved queries, and open tabs come back the next time you connect
 
 **Data**
-- Browse tables page by page and search across every column
+- Double-click a table to open a SELECT for it in a query tab
 - Filter query results, and edit them when they come from a single table with its primary key
 - Edit cells in place or in a viewer made for dates, numbers, JSON, binary and ENUM/SET values
 - Every change shows the SQL it will run first, and row edits run in one transaction
@@ -70,6 +72,9 @@ nix.settings = {
 **Structure**
 - Table structure, DDL and ready-made SELECT, INSERT, UPDATE and DELETE statements
 - Table designer for columns, indexes and foreign keys that writes the ALTER TABLE for you to review
+
+**Agents**
+- A built-in MCP server lets coding agents like Claude Code and Cursor use the connections you share with them, read only or asking you to approve every change. It's off by default, and no connection is shared until you choose to
 
 ## Your data
 
