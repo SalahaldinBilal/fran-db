@@ -1,3 +1,5 @@
+use std::sync::{Mutex, PoisonError};
+
 use async_trait::async_trait;
 
 use super::types::{
@@ -7,6 +9,8 @@ use super::types::{
 use crate::error::{AppError, AppResult};
 
 pub type ContextId = u32;
+
+pub type OutcomeSink<'a> = &'a (dyn Fn(StatementOutcome) + Send + Sync);
 
 /// Everything outside a driver module talks to an open connection through this trait.
 /// A context is a dedicated connection with its own session state, one per query tab.
@@ -96,12 +100,25 @@ pub trait DatabaseSession: Send + Sync {
 
     /// Runs every statement in `sql` in order and stops at the first failure,
     /// which is reported on that statement's outcome.
-    async fn execute(
+    async fn execute(&self, context: ContextId, sql: &str, row_limit: usize) -> AppResult<Vec<StatementOutcome>> {
+        let outcomes = Mutex::new(Vec::new());
+        self.execute_streaming(context, sql, row_limit, &|outcome| {
+            if let Ok(mut outcomes) = outcomes.lock() {
+                outcomes.push(outcome);
+            }
+        })
+        .await?;
+        Ok(outcomes.into_inner().unwrap_or_else(PoisonError::into_inner))
+    }
+
+    /// `execute`, handing each statement's outcome to `on_outcome` as soon as it finishes.
+    async fn execute_streaming(
         &self,
         context: ContextId,
         sql: &str,
         row_limit: usize,
-    ) -> AppResult<Vec<StatementOutcome>>;
+        on_outcome: OutcomeSink<'_>,
+    ) -> AppResult<()>;
 
     async fn cancel(&self, context: ContextId) -> AppResult<()>;
 

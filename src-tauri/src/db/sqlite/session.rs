@@ -18,7 +18,7 @@ use super::results::{self, Timing, milliseconds};
 use super::source;
 use super::splitter;
 use super::sqlgen;
-use crate::db::session::{ContextId, DatabaseSession};
+use crate::db::session::{ContextId, DatabaseSession, OutcomeSink};
 use crate::db::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
     ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
@@ -251,9 +251,14 @@ impl DatabaseSession for SqliteSession {
         }
     }
 
-    async fn execute(&self, id: ContextId, sql: &str, row_limit: usize) -> AppResult<Vec<StatementOutcome>> {
+    async fn execute_streaming(
+        &self,
+        id: ContextId,
+        sql: &str,
+        row_limit: usize,
+        on_outcome: OutcomeSink<'_>,
+    ) -> AppResult<()> {
         let conn = self.context(id)?;
-        let mut outcomes = Vec::new();
 
         for statement in splitter::split(sql) {
             let started = Instant::now();
@@ -268,11 +273,11 @@ impl DatabaseSession for SqliteSession {
                         first_reply,
                         finished: Instant::now(),
                     };
-                    outcomes.push(results::outcome(&statement.text, &raw, columns, lookup_note, timing));
+                    on_outcome(results::outcome(&statement.text, &raw, columns, lookup_note, timing));
                 }
                 Err(error) => {
                     let elapsed_ms = milliseconds(first_reply - started);
-                    outcomes.push(StatementOutcome {
+                    on_outcome(StatementOutcome {
                         sql: statement.text,
                         result_sets: Vec::new(),
                         affected_rows: 0,
@@ -290,7 +295,7 @@ impl DatabaseSession for SqliteSession {
             }
         }
 
-        Ok(outcomes)
+        Ok(())
     }
 
     async fn cancel(&self, id: ContextId) -> AppResult<()> {

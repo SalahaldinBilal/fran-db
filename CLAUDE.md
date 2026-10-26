@@ -43,7 +43,7 @@ No frontend tests or linters are configured.
 ### Sessions and contexts
 
 - `open_session` connects and registers an `OpenSession` in `SessionManager`. Metadata calls share one connection per session. Each query tab gets its own connection ("context", `open_query_context`) so session variables and transactions stay per tab. Contexts reconnect after a dropped connection and ping after a minute idle.
-- `execute_query` splits the SQL with the kind's splitter, runs statements in order, and stops at the first failure, which is reported on that statement's outcome rather than as a command error.
+- `execute_query` splits the SQL with the kind's splitter, runs statements in order, and stops at the first failure, which is reported on that statement's outcome rather than as a command error. Each outcome goes to the tab over a `Channel` as soon as its statement finishes (drivers implement `execute_streaming`). The command returns how many it sent, because channel messages can arrive after the reply.
 - Cancel (`cancel_query`) opens a short side connection: MySQL runs `KILL QUERY <id>`, Postgres sends a CancelRequest with the context's key. SQLite interrupts the context's connection in place.
 
 ### Transports

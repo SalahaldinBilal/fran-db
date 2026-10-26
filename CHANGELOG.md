@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- When you run several statements, each one shows up in Messages, and its results in their own tab, as soon as it finishes instead of all at the end. Messages stays in front while they come in.
 - Tinting the whole tab and connection card with the connection's color is now one switch in Settings > Appearance, on by default, instead of a setting on each connection.
 - The separate table data view is gone. Double-clicking a table, or Query table in its menu, opens a query tab with a SELECT for it and runs it. If that table already has a tab whose SELECT you haven't changed, that tab comes to the front instead. Settings > Results has a switch to open the SELECT without running it.
 

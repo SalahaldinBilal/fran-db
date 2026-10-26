@@ -1,4 +1,4 @@
-import { invoke, InvokeOptions } from "@tauri-apps/api/core";
+import { Channel, invoke, InvokeOptions } from "@tauri-apps/api/core";
 import {
   BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, ConnectionProfile, DatabaseInfo, DatabaseKind, DatabaseSize, DesignOptions,
   HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, RowChange, SavedQuery, ServerInfo,
@@ -48,7 +48,7 @@ type Commands = {
   "get_column_choices": Command<{ sessionId: string, database: string, table: string, column: string }, ColumnChoices | null>,
   "open_query_context": Command<{ sessionId: string, database: string | null }, number>,
   "close_query_context": Command<{ sessionId: string, contextId: number }>,
-  "execute_query": Command<{ sessionId: string, contextId: number, sql: string, rowLimit: number }, StatementOutcome[]>,
+  "execute_query": Command<{ sessionId: string, contextId: number, sql: string, rowLimit: number, onOutcome: Channel<StatementOutcome> }, number>,
   "cancel_query": Command<{ sessionId: string, contextId: number }>,
   "split_sql": Command<{ kind: DatabaseKind, sql: string }, StatementRange[]>,
   "list_columns": Command<{ sessionId: string, database: string }, CatalogColumn[]>,

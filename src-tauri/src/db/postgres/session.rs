@@ -20,7 +20,7 @@ use super::splitter;
 use super::sqlgen::{self, Dialect};
 use super::types::TypeCache;
 use crate::connections::SecretBag;
-use crate::db::session::{ContextId, DatabaseSession};
+use crate::db::session::{ContextId, DatabaseSession, OutcomeSink};
 use crate::db::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
     ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
@@ -460,7 +460,13 @@ impl DatabaseSession for PostgresSession {
         }
     }
 
-    async fn execute(&self, id: ContextId, sql: &str, row_limit: usize) -> AppResult<Vec<StatementOutcome>> {
+    async fn execute_streaming(
+        &self,
+        id: ContextId,
+        sql: &str,
+        row_limit: usize,
+        on_outcome: OutcomeSink<'_>,
+    ) -> AppResult<()> {
         let context = self.context(id)?;
         let statements = splitter::split(sql);
 
@@ -474,7 +480,6 @@ impl DatabaseSession for PostgresSession {
         let without_network = |ms: f64| (ms - network_ms.unwrap_or(0.0)).max(0.0);
         live.conn.take_notices();
 
-        let mut outcomes = Vec::with_capacity(statements.len());
         let mut lost_connection = false;
 
         for statement in statements {
@@ -496,13 +501,13 @@ impl DatabaseSession for PostgresSession {
                     );
                     outcome.execution_ms = without_network(outcome.execution_ms);
                     outcome.network_ms = network_ms;
-                    outcomes.push(outcome);
+                    on_outcome(outcome);
                 }
                 Err(error) => {
                     lost_connection = error.connection_lost();
                     let elapsed_ms = milliseconds(finished - started);
                     let info = results::notice_text(&notices);
-                    outcomes.push(StatementOutcome {
+                    on_outcome(StatementOutcome {
                         sql: statement.text,
                         result_sets: Vec::new(),
                         affected_rows: 0,
@@ -525,7 +530,7 @@ impl DatabaseSession for PostgresSession {
             *slot = None;
         }
 
-        Ok(outcomes)
+        Ok(())
     }
 
     async fn cancel(&self, id: ContextId) -> AppResult<()> {

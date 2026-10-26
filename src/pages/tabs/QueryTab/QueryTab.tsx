@@ -1,5 +1,8 @@
 import styles from "./QueryTab.module.scss";
-import { Accessor, For, Match, Show, Switch, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js";
+import {
+  Accessor, For, Match, Owner, Show, Switch, createEffect, createMemo, createRoot, createSignal, getOwner, onCleanup, runWithOwner, untrack,
+} from "solid-js";
+import { Channel } from "@tauri-apps/api/core";
 import {
   ArrowDownToLine, CircleAlert, CircleCheck, Lock, Pencil, Play, Plus, Save, Search, Square, StepForward, Table2,
 } from "lucide-solid";
@@ -147,17 +150,33 @@ function QueryTab(props: QueryTabProps) {
     return { set, label, edits, editing, target, readOnlyReason, replaceRows: setRows };
   }
 
-  const resultEntries = createMemo<ResultEntry[]>(() => {
-    const entries: ResultEntry[] = [];
-    for (const outcome of outcomes()) {
-      for (const set of outcome.resultSets) entries.push(createResultEntry(set, `Result ${entries.length + 1}`));
-    }
-    return entries;
-  });
+  const [resultEntries, setResultEntries] = createSignal<ResultEntry[]>([]);
+  let resultsOwner: Owner | null = null;
+  let disposeResults: (() => void) | undefined;
+  onCleanup(() => disposeResults?.());
+
+  function clearResults() {
+    disposeResults?.();
+    createRoot(dispose => {
+      disposeResults = dispose;
+      resultsOwner = getOwner();
+    });
+    setOutcomes([]);
+    setResultEntries([]);
+  }
+
+  function addOutcome(outcome: StatementOutcome) {
+    const count = resultEntries().length;
+    const entries = runWithOwner(resultsOwner, () =>
+      outcome.resultSets.map((set, index) => createResultEntry(set, `Result ${count + index + 1}`)),
+    ) ?? [];
+    setOutcomes(current => [...current, outcome]);
+    setResultEntries(current => [...current, ...entries]);
+  }
 
   const runStats = createMemo<RunStat[]>(() => {
     const ran = outcomes();
-    if (ran.length === 0) return [];
+    if (running() || ran.length === 0) return [];
     const server = ran.reduce((sum, outcome) => sum + outcome.executionMs, 0);
     const fetch = ran.reduce((sum, outcome) => sum + outcome.fetchMs, 0);
     const network = ran[0].networkMs;
@@ -288,28 +307,52 @@ function QueryTab(props: QueryTabProps) {
     setRunError(null);
     setHasRun(true);
 
+    const received: StatementOutcome[] = [];
+    let expected = Infinity;
+    let finished = false;
+    let allReceived!: () => void;
+    const receivedAll = new Promise<void>(resolve => { allReceived = resolve; });
+
+    const channel = new Channel<StatementOutcome>();
+    channel.onmessage = outcome => {
+      if (finished) return;
+      if (received.length === 0) {
+        clearResults();
+        setView("messages");
+      }
+      received.push(outcome);
+      addOutcome(outcome);
+      if (received.length >= expected) allReceived();
+    };
+
     try {
       const id = await ensureContext();
       const sent = performance.now();
-      const result = await safeInvoke("execute_query", {
+      expected = await safeInvoke("execute_query", {
         sessionId: props.sessionId,
         contextId: id,
         sql,
         rowLimit: rowLimit(),
+        onOutcome: channel,
       });
+      // Channel messages can arrive after the command's reply, so wait for the count it sent.
+      if (received.length >= expected) allReceived();
+      await receivedAll;
       setRoundTrip(performance.now() - sent);
-      setOutcomes(result);
-      const firstResult = result.some(outcome => outcome.resultSets.length > 0);
-      setView(firstResult && !result.some(outcome => outcome.error) ? 0 : "messages");
 
-      const changedSchema = result.some(outcome => !outcome.error && /^\s*(create|alter|drop|rename)\b/i.test(outcome.sql));
+      if (received.length === 0) clearResults();
+      const only = received.length === 1 ? received[0] : null;
+      if (only && only.resultSets.length > 0 && !only.error) setView(0);
+
+      const changedSchema = received.some(outcome => !outcome.error && /^\s*(create|alter|drop|rename)\b/i.test(outcome.sql));
       if (changedSchema) workspace.refreshCatalog(props.sessionId, props.database);
     } catch (error) {
       if (isAppError(error) && error.detail.kind === "notFound") contextId = null;
-      setOutcomes([]);
+      if (received.length === 0) clearResults();
       setRunError(error);
       setView("messages");
     } finally {
+      finished = true;
       setRunning(false);
     }
   }

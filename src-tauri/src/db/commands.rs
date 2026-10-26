@@ -1,6 +1,12 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+};
 
-use tauri::State;
+use tauri::{State, ipc::Channel};
 
 use super::{
     DatabaseKind,
@@ -192,12 +198,19 @@ pub async fn execute_query(
     context_id: ContextId,
     sql: String,
     row_limit: usize,
-) -> AppResult<Vec<StatementOutcome>> {
+    on_outcome: Channel<StatementOutcome>,
+) -> AppResult<usize> {
+    let sent = AtomicUsize::new(0);
     sessions
         .get(&session_id)?
         .session
-        .execute(context_id, &sql, row_limit)
-        .await
+        .execute_streaming(context_id, &sql, row_limit, &|outcome| {
+            if on_outcome.send(outcome).is_ok() {
+                sent.fetch_add(1, Ordering::SeqCst);
+            }
+        })
+        .await?;
+    Ok(sent.into_inner())
 }
 
 #[tauri::command]
