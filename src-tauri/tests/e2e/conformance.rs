@@ -14,7 +14,7 @@ pub fn all() -> Vec<Case> {
         describes_table_structure,
         create_sql_rebuilds_the_table,
         select_template_runs,
-        fetches_pages_and_searches,
+        reads_table_rows,
         reads_primary_keys,
         stops_at_the_first_failed_statement,
         counts_affected_rows,
@@ -162,8 +162,8 @@ async fn select_template_runs(ctx: &Ctx) -> TestResult {
     Ok(())
 }
 
-async fn fetches_pages_and_searches(ctx: &Ctx) -> TestResult {
-    let all = ctx.session.fetch_rows(&ctx.ns, "items", 0, 100, None).await?;
+async fn reads_table_rows(ctx: &Ctx) -> TestResult {
+    let all = ctx.query("SELECT * FROM items ORDER BY id").await?;
     assert_eq!(texts(&all, "name"), ["apple", "banana", "cherry"]);
     assert_eq!(values(&all, "note")[1], None);
     assert_eq!(values(&all, "price")[1].as_deref(), Some("0.25"));
@@ -174,13 +174,10 @@ async fn fetches_pages_and_searches(ctx: &Ctx) -> TestResult {
         [ValueCategory::Integer, ValueCategory::Text, ValueCategory::Decimal, ValueCategory::Text]
     );
 
-    let page = ctx.session.fetch_rows(&ctx.ns, "items", 1, 1, None).await?;
-    assert_eq!(texts(&page, "name"), ["banana"]);
-
-    for (term, expected) in [("BANAN", vec!["banana"]), ("it's", vec!["cherry"]), ("12.00", vec!["cherry"]), ("zzz", vec![])] {
-        let found = ctx.session.fetch_rows(&ctx.ns, "items", 0, 100, Some(term)).await?;
-        assert_eq!(texts(&found, "name"), expected, "searching for {term}");
-    }
+    let id = &all.columns[0];
+    assert!(id.primary_key);
+    assert_eq!(id.table.as_deref(), Some("items"));
+    assert_eq!(id.source_name.as_deref(), Some("id"));
     Ok(())
 }
 
@@ -210,7 +207,7 @@ async fn counts_affected_rows(ctx: &Ctx) -> TestResult {
 }
 
 async fn applies_row_edits_in_one_transaction(ctx: &Ctx) -> TestResult {
-    let loaded = ctx.session.fetch_rows(&ctx.ns, "items", 0, 100, None).await?;
+    let loaded = ctx.query("SELECT * FROM items").await?;
     let position = |name: &str| loaded.columns.iter().position(|column| column.name == name).unwrap();
     let row = |name: &str| {
         loaded

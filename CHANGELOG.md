@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Query results that can be edited have an Add row button, including results from an empty table.
+- Query results from Cloudflare D1 can be edited when the query reads one table and lists its columns by name or with `*`.
+
+### Changed
+
+- The separate table data view is gone. Double-clicking a table, or Query table in its menu, opens a query tab with a SELECT for it and runs it. If that table already has a tab whose SELECT you haven't changed, that tab comes to the front instead. Settings > Results has a switch to open the SELECT without running it.
+
 ## [0.1.2] - 2026-10-25
 
 ### Added

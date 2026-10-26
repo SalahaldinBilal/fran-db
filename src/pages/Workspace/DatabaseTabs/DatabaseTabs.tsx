@@ -1,6 +1,6 @@
 import styles from "./DatabaseTabs.module.scss";
 import { For, Match, Show, Switch, createMemo, onMount } from "solid-js";
-import { Database, FileCode, PencilRuler, Plus, Rows3, SquareTerminal, X } from "lucide-solid";
+import { Database, FileCode, PencilRuler, Plus, SquareTerminal, X } from "lucide-solid";
 import useWorkspaceState, { DatabaseTab } from "@core/states/workspaceState";
 import useSavedQueriesState from "@core/states/savedQueriesState";
 import useContextMenuState from "@core/states/contextMenuState";
@@ -10,7 +10,6 @@ import TabStrip, { TabStripApi, TabStripItem } from "@core/components/TabStrip/T
 import Button from "@core/components/Button/Button";
 import EmptyState from "@core/components/EmptyState/EmptyState";
 import QueryTab from "../../tabs/QueryTab/QueryTab";
-import TableDataTab from "../../tabs/TableDataTab/TableDataTab";
 import StructureTab from "../../tabs/StructureTab/StructureTab";
 import TableDesignerTab from "../../tabs/TableDesignerTab/TableDesignerTab";
 
@@ -23,8 +22,6 @@ function tabIcon(tab: DatabaseTab) {
   switch (tab.kind) {
     case "query":
       return SquareTerminal;
-    case "data":
-      return Rows3;
     case "structure":
       return tab.objectKind === "table" ? FileCode : objectKindInfo(tab.objectKind).icon;
     case "design":
@@ -136,11 +133,6 @@ function DatabaseTabs(props: DatabaseTabsProps) {
                         tab={query()}
                         active={scope()?.activeTabId === tab.id}
                       />
-                    )}
-                  </Match>
-                  <Match when={tab.kind === "data" && tab}>
-                    {data => (
-                      <TableDataTab sessionId={props.sessionId} database={props.database} table={data().table} />
                     )}
                   </Match>
                   <Match when={tab.kind === "structure" && tab}>

@@ -1,11 +1,9 @@
 use super::client::{PgConnection, PgError, TextRow};
 use super::ddl;
-use super::results::{describe, result_set};
-use super::sqlgen::{Dialect, qualified, quote_identifier, search_condition};
-use super::types::TypeCache;
+use super::sqlgen::{Dialect, qualified, quote_identifier};
 use crate::db::types::{
     CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
-    ObjectKind, ObjectStructure, ResultSet, SqlTemplate,
+    ObjectKind, ObjectStructure, SqlTemplate,
 };
 use crate::error::AppError;
 
@@ -515,35 +513,6 @@ pub async fn column_choices(
         multiple: false,
         values: rows.iter().map(|row| name(row, 0)).collect(),
     }))
-}
-
-#[allow(clippy::too_many_arguments)]
-pub async fn fetch_rows(
-    conn: &mut PgConnection,
-    types: &TypeCache,
-    dialect: Dialect,
-    schema: &str,
-    table: &str,
-    offset: u64,
-    limit: u64,
-    search: Option<&str>,
-) -> Result<ResultSet, PgError> {
-    let target = qualified(schema, table);
-    let filter = match search.map(str::trim).filter(|term| !term.is_empty()) {
-        Some(term) => {
-            let probe = conn.simple_query(&format!("SELECT * FROM {target} LIMIT 0"), 1).await?;
-            let raw = probe.results.into_iter().next().unwrap_or_default();
-            let columns = describe(conn, types, &raw.columns).await?;
-            format!(" WHERE {}", search_condition(dialect, &columns, term))
-        }
-        None => String::new(),
-    };
-
-    let sql = format!("SELECT * FROM {target}{filter} LIMIT {limit} OFFSET {offset}");
-    let outcome = conn.simple_query(&sql, usize::try_from(limit).unwrap_or(usize::MAX)).await?;
-    let raw = outcome.results.into_iter().next().unwrap_or_default();
-    let columns = describe(conn, types, &raw.columns).await?;
-    Ok(result_set(raw, columns))
 }
 
 #[cfg(test)]

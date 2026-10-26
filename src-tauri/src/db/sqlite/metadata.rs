@@ -1,10 +1,9 @@
 use super::connection::{SqlValue, SqliteConnection};
 use super::definition;
-use super::results::{describe, result_set};
-use super::sqlgen::{qualified, quote_identifier, search_condition, string_literal};
+use super::sqlgen::{qualified, quote_identifier, string_literal};
 use crate::db::types::{
     CatalogColumn, ColumnDefinition, DatabaseInfo, ForeignKeyDefinition, IndexDefinition, ObjectInfo, ObjectKind,
-    ObjectStructure, ResultSet, SqlTemplate,
+    ObjectStructure, SqlTemplate,
 };
 use crate::error::{AppError, AppResult};
 
@@ -510,31 +509,6 @@ pub async fn primary_key(conn: &dyn SqliteConnection, schema: &str, table: &str)
         return Ok(Vec::new());
     }
     Ok(key_columns(&table_columns(conn, schema, table).await?))
-}
-
-pub async fn fetch_rows(
-    conn: &dyn SqliteConnection,
-    schema: &str,
-    table: &str,
-    offset: u64,
-    limit: u64,
-    search: Option<&str>,
-) -> AppResult<ResultSet> {
-    let target = qualified(schema, table);
-    let source = Some((schema, table));
-    let filter = match search.map(str::trim).filter(|term| !term.is_empty()) {
-        Some(term) => {
-            let probe = conn.query(&format!("SELECT * FROM {target} LIMIT 0"), &[], 0).await?;
-            let columns = describe(conn, &probe, source).await?;
-            format!(" WHERE {}", search_condition(&columns, term))
-        }
-        None => String::new(),
-    };
-
-    let sql = format!("SELECT * FROM {target}{filter} LIMIT {limit} OFFSET {offset}");
-    let raw = conn.query(&sql, &[], usize::try_from(limit).unwrap_or(usize::MAX)).await?;
-    let columns = describe(conn, &raw, source).await?;
-    Ok(result_set(&raw, columns))
 }
 
 fn missing_function(message: &str) -> Option<&str> {

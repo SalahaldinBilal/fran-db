@@ -225,6 +225,13 @@ function ResultGrid(props: ResultGridProps) {
     ensureVisible(cell);
   }
 
+  createEffect(on(() => props.rows.length, (length, previous) => {
+    const last = length - 1;
+    if (previous === undefined || length <= previous || props.editing?.rowState(last) !== "new") return;
+    move({ row: last, column: 0 });
+    viewport.focus();
+  }));
+
   function onKeyDown(event: KeyboardEvent) {
     // Solid passes events from the viewer's portal up to here, so ignore anything outside the grid itself.
     if (inlineEdit() || !viewport.contains(event.target as Node)) return;

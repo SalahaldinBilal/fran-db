@@ -81,7 +81,7 @@ pub fn split(sql: &str) -> Vec<StatementRange> {
     statements
 }
 
-fn closing_quote(character: char) -> Option<char> {
+pub(super) fn closing_quote(character: char) -> Option<char> {
     match character {
         '\'' | '"' | '`' => Some(character),
         '[' => Some(']'),
@@ -89,15 +89,15 @@ fn closing_quote(character: char) -> Option<char> {
     }
 }
 
-fn is_word_start(character: char) -> bool {
+pub(super) fn is_word_start(character: char) -> bool {
     character.is_alphabetic() || character == '_'
 }
 
-fn is_identifier_char(character: char) -> bool {
+pub(super) fn is_identifier_char(character: char) -> bool {
     character.is_alphanumeric() || character == '_' || character == '$'
 }
 
-fn word_end(chars: &[char], start: usize) -> usize {
+pub(super) fn word_end(chars: &[char], start: usize) -> usize {
     let mut index = start;
     while index < chars.len() && is_identifier_char(chars[index]) {
         index += 1;
@@ -106,7 +106,7 @@ fn word_end(chars: &[char], start: usize) -> usize {
 }
 
 /// A doubled closing quote stands for itself, except inside brackets, which can't hold `]`.
-fn quoted_end(chars: &[char], start: usize, close: char) -> usize {
+pub(super) fn quoted_end(chars: &[char], start: usize, close: char) -> usize {
     let mut index = start + 1;
 
     while index < chars.len() {
@@ -142,7 +142,7 @@ fn block_comment_end(chars: &[char], start: usize) -> usize {
     chars.len()
 }
 
-fn comment_end(chars: &[char], index: usize) -> Option<usize> {
+pub(super) fn comment_end(chars: &[char], index: usize) -> Option<usize> {
     match (chars[index], chars.get(index + 1)) {
         ('-', Some('-')) => Some(line_end(chars, index)),
         ('/', Some('*')) => Some(block_comment_end(chars, index)),

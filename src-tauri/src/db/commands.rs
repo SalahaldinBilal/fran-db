@@ -9,8 +9,7 @@ use super::{
     split_statements,
     types::{
         BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
-        ObjectStructure, ResultSet, RowChange, ServerInfo, SqlTemplate, StatementOutcome, StatementRange,
-        TableDesign,
+        ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, StatementRange, TableDesign,
     },
 };
 use crate::connections::{ConnectionProfile, ConnectionStore, resolve_secrets};
@@ -129,23 +128,6 @@ pub async fn get_object_structure(
         .get(&session_id)?
         .session
         .object_structure(&database, &name, kind, signature.as_deref())
-        .await
-}
-
-#[tauri::command]
-pub async fn fetch_table_rows(
-    sessions: State<'_, SessionManager>,
-    session_id: String,
-    database: String,
-    table: String,
-    offset: u64,
-    limit: u64,
-    search: Option<String>,
-) -> AppResult<ResultSet> {
-    sessions
-        .get(&session_id)?
-        .session
-        .fetch_rows(&database, &table, offset, limit, search.as_deref())
         .await
 }
 

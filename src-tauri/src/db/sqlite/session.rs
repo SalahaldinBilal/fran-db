@@ -15,12 +15,13 @@ use super::local::LocalConnector;
 use super::metadata;
 use super::options::SqliteOptions;
 use super::results::{self, Timing, milliseconds};
+use super::source;
 use super::splitter;
 use super::sqlgen;
 use crate::db::session::{ContextId, DatabaseSession};
 use crate::db::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
-    ObjectStructure, ResultSet, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
+    ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
 };
 use crate::error::{AppError, AppResult};
 
@@ -93,11 +94,14 @@ impl SqliteSession {
     }
 
     /// When the tables can't be read the columns stay read only, and the note says why.
-    async fn columns_for(&self, raw: &RawResult) -> (Vec<ColumnMeta>, Option<String>) {
+    async fn columns_for(&self, raw: &RawResult, sql: &str) -> (Vec<ColumnMeta>, Option<String>) {
         if raw.columns.is_empty() {
             return (Vec::new(), None);
         }
-        match results::describe(self.meta().as_ref(), raw, None).await {
+        // Backends like D1 don't report source tables, so a plain single-table SELECT names its own.
+        let named = if raw.columns.iter().all(|column| column.table.is_none()) { source::single_table(sql) } else { None };
+        let fallback = named.as_ref().map(|(schema, table)| (schema.as_str(), table.as_str()));
+        match results::describe(self.meta().as_ref(), raw, fallback).await {
             Ok(columns) => (columns, None),
             Err(error) => (
                 results::basic_columns(raw),
@@ -170,17 +174,6 @@ impl DatabaseSession for SqliteSession {
 
     async fn database_sql(&self, database: &str, template: SqlTemplate) -> AppResult<String> {
         metadata::database_sql(self.meta().as_ref(), database, template).await
-    }
-
-    async fn fetch_rows(
-        &self,
-        database: &str,
-        table: &str,
-        offset: u64,
-        limit: u64,
-        search: Option<&str>,
-    ) -> AppResult<ResultSet> {
-        metadata::fetch_rows(self.meta().as_ref(), database, table, offset, limit, search).await
     }
 
     async fn primary_key(&self, database: &str, table: &str) -> AppResult<Vec<String>> {
@@ -265,7 +258,7 @@ impl DatabaseSession for SqliteSession {
 
             match result {
                 Ok(raw) => {
-                    let (columns, lookup_note) = self.columns_for(&raw).await;
+                    let (columns, lookup_note) = self.columns_for(&raw, &statement.text).await;
                     let timing = Timing {
                         started,
                         first_reply,
@@ -311,9 +304,13 @@ impl DatabaseSession for SqliteSession {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::types::CellEdit;
+    use crate::db::types::{CellEdit, ResultSet};
 
     struct TempFile(std::path::PathBuf);
+
+    async fn select(session: &SqliteSession, context: ContextId, sql: &str) -> ResultSet {
+        session.execute(context, sql, 100).await.unwrap().remove(0).result_sets.remove(0)
+    }
 
     impl Drop for TempFile {
         fn drop(&mut self) {
@@ -427,7 +424,7 @@ mod tests {
             .await
             .unwrap();
 
-        let page = session.fetch_rows("main", "t", 0, 50, None).await.unwrap();
+        let page = select(&session, context, "SELECT * FROM t").await;
         assert_eq!(page.columns[0].category, crate::db::types::ValueCategory::Other);
         let changes = vec![
             RowChange::Update {
@@ -454,7 +451,7 @@ mod tests {
         let context = session.open_context(None).await.unwrap();
         session.execute(context, SCHEMA, 100).await.unwrap();
 
-        let page = session.fetch_rows("main", "users", 0, 50, Some("B@X")).await.unwrap();
+        let page = select(&session, context, "SELECT * FROM users WHERE email = 'B@X.IO'").await;
         assert_eq!(page.rows.len(), 1);
         let changes = vec![RowChange::Update {
             key: page.rows[0].clone(),
@@ -463,7 +460,7 @@ mod tests {
         let statements = session.row_changes_sql("main", "users", &page.columns, &changes).unwrap();
         let outcome = session.execute_batch(None, &statements, true).await.unwrap();
         assert!(outcome.error.is_none());
-        let page = session.fetch_rows("main", "users", 0, 50, Some("7.5")).await.unwrap();
+        let page = select(&session, context, "SELECT * FROM users WHERE score = 7.5").await;
         assert_eq!(page.rows[0][2].as_deref(), Some("7.5"));
 
         let original = session.table_design("main", "users").await.unwrap();
@@ -482,6 +479,65 @@ mod tests {
         let outcome = session.execute_batch(None, &failing, true).await.unwrap();
         assert_eq!(outcome.failed_index, Some(1));
         assert!(outcome.rolled_back);
+    }
+
+    struct Unsourced(Arc<dyn SqliteConnection>);
+
+    #[async_trait]
+    impl SqliteConnection for Unsourced {
+        async fn query(
+            &self,
+            sql: &str,
+            params: &[crate::db::sqlite::connection::SqlValue],
+            row_limit: usize,
+        ) -> AppResult<RawResult> {
+            let mut raw = self.0.query(sql, params, row_limit).await?;
+            for column in &mut raw.columns {
+                column.schema = None;
+                column.table = None;
+                column.origin = None;
+            }
+            Ok(raw)
+        }
+    }
+
+    struct UnsourcedConnector(LocalConnector);
+
+    #[async_trait]
+    impl SqliteConnector for UnsourcedConnector {
+        fn product(&self) -> &'static str {
+            "SQLite"
+        }
+
+        async fn connect(&self) -> AppResult<Arc<dyn SqliteConnection>> {
+            Ok(Arc::new(Unsourced(self.0.connect().await?)))
+        }
+    }
+
+    #[tokio::test]
+    async fn names_the_table_when_the_backend_cant() {
+        let path = std::env::temp_dir().join(format!("fran-db-{}.sqlite", uuid::Uuid::new_v4()));
+        let _file = TempFile(path.clone());
+        let options = SqliteOptions {
+            path: path.to_string_lossy().into_owned(),
+            create_if_missing: true,
+            ..Default::default()
+        };
+        let connector = UnsourcedConnector(LocalConnector::new(&options).unwrap());
+        let session = SqliteSession::open(Arc::new(connector)).await.unwrap();
+        let context = session.open_context(None).await.unwrap();
+        session.execute(context, SCHEMA, 100).await.unwrap();
+
+        let result = select(&session, context, "SELECT u.ID, email FROM users u WHERE id = 1").await;
+        assert!(result.columns[0].primary_key);
+        assert_eq!(result.columns[0].source_name.as_deref(), Some("id"));
+        assert_eq!(result.columns[1].table.as_deref(), Some("users"));
+
+        let empty = select(&session, context, "SELECT * FROM posts").await;
+        assert_eq!(empty.columns[1].source_name.as_deref(), Some("user_id"));
+
+        let aliased = select(&session, context, "SELECT id AS email FROM users").await;
+        assert_eq!(aliased.columns[0].table, None);
     }
 }
 

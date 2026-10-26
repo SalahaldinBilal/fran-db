@@ -1,12 +1,11 @@
-import { ClipboardCopy, Copy, FileCode, PencilRuler, RefreshCw, Rows3, SquarePen, TableProperties } from "lucide-solid";
+import { ClipboardCopy, Copy, FileCode, PencilRuler, RefreshCw, SquarePen, TableProperties } from "lucide-solid";
 import { MenuItem } from "@core/states/contextMenuState";
 import useWorkspaceState from "@core/states/workspaceState";
 import useToastState from "@core/states/toastState";
 import { objectKindInfo } from "@core/constants/objectKinds";
-import { databaseModule } from "@core/databases";
 import { safeInvoke } from "@core/helpers/safeInvoke";
 import { copyText } from "@core/helpers/clipboard";
-import { DatabaseKind, ObjectInfo, SqlTemplate } from "@core/types";
+import { ObjectInfo, SqlTemplate } from "@core/types";
 
 const ROW_TEMPLATES: { template: SqlTemplate, label: string }[] = [
   { template: "select", label: "Select statement" },
@@ -68,21 +67,17 @@ export function folderMenu(sessionId: string, database: string, tables: boolean)
   return items;
 }
 
-export function objectMenu(sessionId: string, kind: DatabaseKind, database: string, object: ObjectInfo): MenuItem[] {
+export function objectMenu(sessionId: string, database: string, object: ObjectInfo): MenuItem[] {
   const workspace = useWorkspaceState;
-  const module = databaseModule(kind);
   const info = objectKindInfo(object.kind);
   const items: MenuItem[] = [];
 
   if (info.hasRows) {
-    items.push(
-      { label: "Open data", icon: Rows3, onSelect: () => workspace.openTableData(sessionId, database, object.name) },
-      {
-        label: `Query ${info.singular}`,
-        icon: SquarePen,
-        onSelect: () => workspace.newQueryTab(sessionId, database, module.selectRowsSql(object.name)),
-      },
-    );
+    items.push({
+      label: `Query ${info.singular}`,
+      icon: SquarePen,
+      onSelect: () => workspace.queryTable(sessionId, database, object.name),
+    });
   }
 
   if (object.kind === "table") {

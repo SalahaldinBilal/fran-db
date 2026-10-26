@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use super::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
-    ObjectStructure, ResultSet, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
+    ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
 };
 use crate::error::{AppError, AppResult};
 
@@ -53,16 +53,6 @@ pub trait DatabaseSession: Send + Sync {
     ) -> AppResult<String>;
 
     async fn database_sql(&self, database: &str, template: SqlTemplate) -> AppResult<String>;
-
-    /// `search` keeps only rows where some column's text contains it.
-    async fn fetch_rows(
-        &self,
-        database: &str,
-        table: &str,
-        offset: u64,
-        limit: u64,
-        search: Option<&str>,
-    ) -> AppResult<ResultSet>;
 
     /// Column names of the table's primary key, empty when it has none or isn't a base table.
     async fn primary_key(&self, database: &str, table: &str) -> AppResult<Vec<String>>;

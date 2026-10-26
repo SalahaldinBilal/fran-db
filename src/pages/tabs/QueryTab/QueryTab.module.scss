@@ -128,14 +128,14 @@
 .Stats {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 4px;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  min-height: 30px;
+  margin-bottom: 4px;
+  padding: 0 14px 6px;
+  border-bottom: 1px solid var(--border);
   font-size: var(--font-sm);
   white-space: nowrap;
-}
-
-.StatementCount {
-  color: var(--text-muted);
 }
 
 .Stat {
@@ -211,6 +211,11 @@
   svg {
     flex-shrink: 0;
   }
+}
+
+.ResultTabs button.AddRow {
+  height: 24px;
+  margin-left: 4px;
 }
 
 

@@ -7,6 +7,7 @@ mod metadata;
 mod options;
 mod results;
 mod session;
+mod source;
 pub mod splitter;
 mod sqlgen;
 

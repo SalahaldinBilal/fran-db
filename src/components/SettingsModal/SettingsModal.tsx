@@ -7,6 +7,7 @@ import { errorMessage } from "@core/helpers/errors";
 import Modal from "../Modal/Modal";
 import Button from "../Button/Button";
 import SegmentedControl from "../SegmentedControl/SegmentedControl";
+import Toggle from "../Switch/Switch";
 import ReleaseNotes from "../ReleaseNotes/ReleaseNotes";
 
 export type SettingsModalProps = {
@@ -86,6 +87,18 @@ function SettingsModal(props: SettingsModalProps) {
                 { value: "viewer", label: "Viewer" },
                 { value: "inline", label: "The cell" },
               ]}
+            />
+          </div>
+          <div class={styles.Setting}>
+            <div class={styles.Text}>
+              <div class={styles.Name}>Run the query when opening a table</div>
+              <div class={styles.Hint}>
+                Double-clicking a table, or Query table in its menu, opens a SELECT for it in a query tab. With this on, the SELECT runs right away.
+              </div>
+            </div>
+            <Toggle
+              checked={settings.runTableQueryOnOpen}
+              onChange={checked => update({ runTableQueryOnOpen: checked })}
             />
           </div>
         </section>

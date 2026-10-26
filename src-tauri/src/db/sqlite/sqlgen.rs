@@ -65,42 +65,6 @@ fn is_number(value: &str) -> bool {
     mantissa_ok && exponent_ok
 }
 
-fn escape_like(value: &str) -> String {
-    let mut escaped = String::with_capacity(value.len());
-    for character in value.chars() {
-        if matches!(character, '!' | '%' | '_') {
-            escaped.push('!');
-        }
-        escaped.push(character);
-    }
-    escaped
-}
-
-/// LIKE ignores ASCII case in SQLite. Blob columns match on their hex.
-pub fn search_condition(columns: &[ColumnMeta], term: &str) -> String {
-    let pattern = string_literal(&format!("%{}%", escape_like(term)));
-    let hex = term.strip_prefix("0x").or_else(|| term.strip_prefix("0X")).unwrap_or(term);
-    let hex_pattern = (!hex.is_empty() && hex.chars().all(|character| character.is_ascii_hexdigit()))
-        .then(|| format!("'%{}%'", hex.to_ascii_uppercase()));
-
-    let conditions: Vec<String> = columns
-        .iter()
-        .filter_map(|column| {
-            let name = quote_identifier(&column.name);
-            match column.category {
-                ValueCategory::Binary => hex_pattern.as_ref().map(|hex| format!("hex({name}) LIKE {hex}")),
-                _ => Some(format!("CAST({name} AS TEXT) LIKE {pattern} ESCAPE '!'")),
-            }
-        })
-        .collect();
-
-    if conditions.is_empty() {
-        "0".to_string()
-    } else {
-        conditions.join(" OR ")
-    }
-}
-
 fn source_identifier(meta: &ColumnMeta) -> AppResult<String> {
     meta.source_name
         .as_deref()
@@ -397,18 +361,5 @@ mod tests {
         assert_eq!(value_literal(Some("0"), ValueCategory::Boolean), "0");
         assert_eq!(value_literal(Some(r"it's \ ok"), ValueCategory::Text), r"'it''s \ ok'");
         assert_eq!(value_literal(None, ValueCategory::Text), "NULL");
-    }
-
-    #[test]
-    fn builds_search_conditions() {
-        let columns = vec![
-            column("id", ValueCategory::Integer, true),
-            column("data", ValueCategory::Binary, false),
-        ];
-        assert_eq!(
-            search_condition(&columns, "ab"),
-            r#"CAST("id" AS TEXT) LIKE '%ab%' ESCAPE '!' OR hex("data") LIKE '%AB%'"#
-        );
-        assert_eq!(search_condition(&columns[1..], "zz"), "0");
     }
 }

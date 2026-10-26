@@ -54,7 +54,7 @@ function SchemaTree(props: { sessionId: string }) {
 
   function openObject(database: string, object: ObjectInfo) {
     if (objectKindInfo(object.kind).hasRows) {
-      workspace.openTableData(props.sessionId, database, object.name);
+      workspace.queryTable(props.sessionId, database, object.name);
     } else {
       workspace.openStructure(props.sessionId, database, object);
     }
@@ -147,7 +147,7 @@ function SchemaTree(props: { sessionId: string }) {
                               onDblClick={() => openObject(name(), object)}
                               onContextMenu={event => openContextMenu(
                                 event,
-                                objectMenu(props.sessionId, databaseKind, name(), object),
+                                objectMenu(props.sessionId, name(), object),
                               )}
                             >
                               <span class={`${styles.Chevron} ${styles.Hidden}`} />

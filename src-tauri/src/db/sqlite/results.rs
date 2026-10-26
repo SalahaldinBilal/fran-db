@@ -73,7 +73,7 @@ pub fn display_value(value: &SqlValue) -> Option<String> {
     }
 }
 
-/// The schema and table a result came from when the backend can't say per column, as for a table's rows.
+/// The schema and table a result came from when the backend can't say per column.
 pub type FallbackSource<'a> = Option<(&'a str, &'a str)>;
 
 pub async fn describe(
@@ -106,7 +106,7 @@ pub async fn describe(
                 let found = tables
                     .get(&(schema.clone(), table.clone()))?
                     .iter()
-                    .find(|candidate| candidate.name == origin)?;
+                    .find(|candidate| candidate.name.eq_ignore_ascii_case(&origin))?;
                 Some((schema, table, found))
             });
             let type_name = column

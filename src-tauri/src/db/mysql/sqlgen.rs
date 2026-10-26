@@ -94,45 +94,6 @@ fn source_identifier(meta: &ColumnMeta) -> AppResult<String> {
         .ok_or_else(|| AppError::general(format!("{} isn't a table column, so it can't be written", meta.name)))
 }
 
-fn escape_like(value: &str) -> String {
-    let mut escaped = String::with_capacity(value.len());
-    for character in value.chars() {
-        if matches!(character, '!' | '%' | '_') {
-            escaped.push('!');
-        }
-        escaped.push(character);
-    }
-    escaped
-}
-
-/// Matches rows where any column, as displayed, contains `term`. Binary columns match on their hex.
-pub fn search_condition(dialect: Dialect, columns: &[ColumnMeta], term: &str) -> String {
-    let pattern = dialect.string_literal(&format!("%{}%", escape_like(&term.to_lowercase())));
-    let hex = term.strip_prefix("0x").or_else(|| term.strip_prefix("0X")).unwrap_or(term);
-    let hex_pattern = (!hex.is_empty() && hex.chars().all(|character| character.is_ascii_hexdigit()))
-        .then(|| format!("'%{}%'", hex.to_ascii_uppercase()));
-
-    let conditions: Vec<String> = columns
-        .iter()
-        .filter_map(|column| {
-            let name = quote_identifier(&column.name);
-            match column.category {
-                ValueCategory::Binary | ValueCategory::Spatial => {
-                    hex_pattern.as_ref().map(|hex| format!("HEX({name}) LIKE {hex}"))
-                }
-                ValueCategory::Bit => Some(format!("CAST({name} + 0 AS CHAR) LIKE {pattern} ESCAPE '!'")),
-                _ => Some(format!("LOWER(CAST({name} AS CHAR)) LIKE {pattern} ESCAPE '!'")),
-            }
-        })
-        .collect();
-
-    if conditions.is_empty() {
-        "FALSE".to_string()
-    } else {
-        conditions.join(" OR ")
-    }
-}
-
 pub fn row_changes_sql(
     dialect: Dialect,
     database: &str,
@@ -402,26 +363,6 @@ mod tests {
         }];
 
         assert!(row_changes_sql(Dialect::default(), "db", "t", &columns, &changes).is_err());
-    }
-
-    #[test]
-    fn builds_search_conditions() {
-        let columns = vec![
-            column("id", ValueCategory::Integer, true),
-            column("data", ValueCategory::Binary, false),
-            column("flags", ValueCategory::Bit, false),
-        ];
-
-        assert_eq!(
-            search_condition(Dialect::default(), &columns, "Ab"),
-            "LOWER(CAST(`id` AS CHAR)) LIKE '%ab%' ESCAPE '!' OR HEX(`data`) LIKE '%AB%' \
-             OR CAST(`flags` + 0 AS CHAR) LIKE '%ab%' ESCAPE '!'"
-        );
-        assert_eq!(
-            search_condition(Dialect::default(), &columns[..2], "50%_!'"),
-            "LOWER(CAST(`id` AS CHAR)) LIKE '%50!%!_!!''%' ESCAPE '!'"
-        );
-        assert_eq!(search_condition(Dialect::default(), &columns[1..2], "zz"), "FALSE");
     }
 
     #[test]

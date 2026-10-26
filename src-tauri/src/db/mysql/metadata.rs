@@ -1,11 +1,10 @@
 use mysql_async::{Conn, Row, prelude::Queryable};
 
-use super::results::read_result_set;
-use super::sqlgen::{Dialect, qualified, quote_identifier, search_condition};
-use super::values::{column_meta, format_value, parse_choices};
+use super::sqlgen::{Dialect, qualified, quote_identifier};
+use super::values::{format_value, parse_choices};
 use crate::db::types::{
-    CatalogColumn, ColumnChoices, ColumnDefinition, ColumnMeta, DatabaseInfo, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
-    ObjectKind, ObjectStructure, ResultSet, ServerInfo, SqlTemplate, ValueCategory,
+    CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
+    ObjectKind, ObjectStructure, ServerInfo, SqlTemplate, ValueCategory,
 };
 use crate::error::{AppError, AppResult};
 
@@ -452,36 +451,4 @@ pub async fn primary_key(conn: &mut Conn, database: &str, table: &str) -> Result
         .await?;
 
     Ok(rows.iter().map(|row| name(row, 0)).collect())
-}
-
-pub async fn fetch_rows(
-    conn: &mut Conn,
-    dialect: Dialect,
-    database: &str,
-    table: &str,
-    offset: u64,
-    limit: u64,
-    search: Option<&str>,
-) -> Result<ResultSet, mysql_async::Error> {
-    let target = qualified(database, table);
-    let filter = match search.map(str::trim).filter(|term| !term.is_empty()) {
-        Some(term) => {
-            let probe = conn.query_iter(format!("SELECT * FROM {target} LIMIT 0")).await?;
-            let columns: Vec<ColumnMeta> = probe.columns_ref().iter().map(column_meta).collect();
-            probe.drop_result().await?;
-            format!(" WHERE {}", search_condition(dialect, &columns, term))
-        }
-        None => String::new(),
-    };
-    let sql = format!("SELECT * FROM {target}{filter} LIMIT {limit} OFFSET {offset}");
-
-    let mut result = conn.query_iter(sql).await?;
-    let set = read_result_set(&mut result, usize::try_from(limit).unwrap_or(usize::MAX)).await?;
-    result.drop_result().await?;
-
-    Ok(set.unwrap_or(ResultSet {
-        columns: Vec::new(),
-        rows: Vec::new(),
-        truncated: false,
-    }))
 }

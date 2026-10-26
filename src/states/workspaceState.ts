@@ -5,9 +5,10 @@ import { withConnectPrompts } from "@core/helpers/connectFlow";
 import { generateId } from "@core/helpers";
 import { databaseModule, withDatabaseModule } from "@core/databases";
 import {
-  CatalogColumn, ConnectionProfile, DatabaseInfo, ObjectInfo, ObjectKind, SavedQuery, SessionInfo,
+  CatalogColumn, ConnectionProfile, DatabaseInfo, DatabaseKind, ObjectInfo, ObjectKind, SavedQuery, SessionInfo,
 } from "@core/types";
 import useToastState from "./toastState";
+import useSettingsState from "./settingsState";
 
 export const HOME_TAB_ID = "home";
 
@@ -20,11 +21,11 @@ export type QueryTabState = {
   kind: "query",
   title: string,
   initialSql: string,
+  runOnOpen?: boolean,
 };
 
 export type DatabaseTab =
   | QueryTabState
-  | { id: string, kind: "data", title: string, table: string }
   | StructureTabState
   | { id: string, kind: "design", title: string, table: string | null };
 
@@ -127,13 +128,17 @@ function catalogKey(info: SessionInfo): string {
   return info.catalog ?? "";
 }
 
-function restoreTab(saved: PersistedTab): DatabaseTab | null {
+function sameSql(a: string, b: string): boolean {
+  return a.trim().replace(/\s+/g, " ") === b.trim().replace(/\s+/g, " ");
+}
+
+function restoreTab(saved: PersistedTab, selectRowsSql: (table: string) => string): DatabaseTab | null {
   const id = generateId();
   switch (saved.kind) {
     case "query":
       return { id, kind: "query", title: saved.title, initialSql: saved.sql };
     case "data":
-      return { id, kind: "data", title: saved.title, table: saved.table };
+      return { id, kind: "query", title: saved.title, initialSql: selectRowsSql(saved.table) };
     case "structure":
       return {
         id,
@@ -175,8 +180,6 @@ function useWorkspaceStateInner() {
         switch (tab.kind) {
           case "query":
             return { kind: "query", title: tab.title, sql: queryText(tab) };
-          case "data":
-            return { kind: "data", title: tab.title, table: tab.table };
           case "structure":
             return {
               kind: "structure",
@@ -236,11 +239,12 @@ function useWorkspaceStateInner() {
     schedulePersist(sessionId);
   }
 
-  function restoredScopes(saved: PersistedSession): Record<string, DatabaseScope> {
+  function restoredScopes(saved: PersistedSession, kind: DatabaseKind): Record<string, DatabaseScope> {
+    const { selectRowsSql } = databaseModule(kind);
     const scopes: Record<string, DatabaseScope> = {};
     for (const [database, scope] of Object.entries(saved.scopes)) {
       const tabs = (Array.isArray(scope.tabs) ? scope.tabs : [])
-        .map(restoreTab)
+        .map(tab => restoreTab(tab, selectRowsSql))
         .filter((tab): tab is DatabaseTab => tab !== null);
       for (const tab of tabs) {
         if (tab.kind === "query") queryTexts.set(tab.id, tab.initialSql);
@@ -264,7 +268,7 @@ function useWorkspaceStateInner() {
     const expanded: Record<string, boolean> = saved
       ? Object.fromEntries(saved.expanded.map(database => [database, true]))
       : defaultDatabase ? { [defaultDatabase]: true } : {};
-    const scopes = saved ? restoredScopes(saved) : {};
+    const scopes = saved ? restoredScopes(saved, info.kind) : {};
     if (selectedDatabase) scopes[selectedDatabase] ??= emptyScope();
 
     return {
@@ -492,9 +496,26 @@ function useWorkspaceStateInner() {
     openTab(sessionId, database, { id: generateId(), kind: "query", title: query.name, initialSql: query.sql });
   }
 
-  function openTableData(sessionId: string, database: string, table: string) {
-    if (focusExisting(sessionId, database, tab => tab.kind === "data" && tab.table === table)) return;
-    openTab(sessionId, database, { id: generateId(), kind: "data", title: table, table });
+  // A tab whose text is still the generated SELECT is reused, edited ones are left alone.
+  function queryTable(sessionId: string, database: string, table: string) {
+    const session = store.sessions[sessionId];
+    if (!session) return;
+
+    const sql = databaseModule(session.info.kind).selectRowsSql(table);
+    if (focusExisting(sessionId, database, tab => tab.kind === "query" && sameSql(queryText(tab), sql))) return;
+    openTab(sessionId, database, {
+      id: generateId(),
+      kind: "query",
+      title: table,
+      initialSql: sql,
+      runOnOpen: useSettingsState.settings.runTableQueryOnOpen,
+    });
+  }
+
+  function clearRunOnOpen(sessionId: string, database: string, tabId: string) {
+    setStore("sessions", sessionId, "scopes", database, "tabs", tab => tab.id === tabId, produce(tab => {
+      if (tab.kind === "query") delete tab.runOnOpen;
+    }));
   }
 
   function openStructure(sessionId: string, database: string, object: ObjectInfo) {
@@ -569,7 +590,8 @@ function useWorkspaceStateInner() {
     selectDatabase,
     newQueryTab,
     openSavedQuery,
-    openTableData,
+    queryTable,
+    clearRunOnOpen,
     openStructure,
     openDesigner,
     updateTab,

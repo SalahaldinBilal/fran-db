@@ -1,7 +1,7 @@
 import styles from "./QueryTab.module.scss";
 import { Accessor, For, Match, Show, Switch, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js";
 import {
-  ArrowDownToLine, CircleAlert, CircleCheck, Lock, Pencil, Play, Save, Search, Square, StepForward, Table2, X,
+  ArrowDownToLine, CircleAlert, CircleCheck, Lock, Pencil, Play, Plus, Save, Search, Square, StepForward, Table2, X,
 } from "lucide-solid";
 import { databaseModule } from "@core/databases";
 import { safeInvoke } from "@core/helpers/safeInvoke";
@@ -136,7 +136,7 @@ function QueryTab(props: QueryTabProps) {
       return current && "reason" in current ? current.reason : null;
     });
 
-    if (set.rows.length > 0) {
+    if (set.columns.length > 0) {
       findEditTarget(props.sessionId, set.columns).then(setCheck, error => setCheck({ reason: errorMessage(error) }));
     }
 
@@ -331,8 +331,15 @@ function QueryTab(props: QueryTabProps) {
     if (failure) return failure;
 
     const applied = current.entry.edits.changeCount();
+    const inserted = current.entry.edits.changes().some(change => change.kind === "insert");
     current.entry.replaceRows(current.entry.edits.savedRows());
-    pushToast(`Applied ${plural(applied, "change")}`, "success", 2500);
+    pushToast(
+      inserted
+        ? `Applied ${plural(applied, "change")}. Run the query again to see the new rows.`
+        : `Applied ${plural(applied, "change")}`,
+      "success",
+      inserted ? 4000 : 2500,
+    );
     return null;
   }
 
@@ -418,6 +425,10 @@ function QueryTab(props: QueryTabProps) {
               editor = api;
               scheduleSplit(api.text());
               if (props.active) api.focus();
+              if (untrack(() => props.tab.runOnOpen)) {
+                workspace.clearRunOnOpen(props.sessionId, props.database, props.tab.id);
+                run("all");
+              }
             }}
           />
         </div>
@@ -494,10 +505,16 @@ function QueryTab(props: QueryTabProps) {
                       }
                     >
                       {target => (
-                        <span class={styles.EditState} title={`Double-click a cell to edit. Changes are written to ${target().database}.${target().table}.`}>
-                          <Pencil size={12} />
-                          {target().table}
-                        </span>
+                        <>
+                          <span class={styles.EditState} title={`Double-click a cell to edit. Changes are written to ${target().database}.${target().table}.`}>
+                            <Pencil size={12} />
+                            {target().table}
+                          </span>
+                          <Button size="sm" class={styles.AddRow} onClick={() => entry().edits.addRow()} tooltip={`Add a row to ${target().table}`}>
+                            <Plus size={14} />
+                            Add row
+                          </Button>
+                        </>
                       )}
                     </Show>
                     <Show when={entry().edits.changeCount() > 0}>
@@ -507,24 +524,8 @@ function QueryTab(props: QueryTabProps) {
                         onApply={() => startReview(entry())}
                       />
                     </Show>
-                    <div class={styles.Separator} />
                   </>
                 )}
-              </Show>
-              <Show when={outcomes().length > 0}>
-                <div class={styles.Stats}>
-                  <Show when={outcomes().length > 1}>
-                    <span class={styles.StatementCount}>{plural(outcomes().length, "statement")}</span>
-                  </Show>
-                  <For each={runStats()}>
-                    {stat => (
-                      <span class={styles.Stat} title={stat.hint}>
-                        <span class={styles.StatLabel}>{stat.label}</span>
-                        <span class={styles.StatValue}>{stat.value}</span>
-                      </span>
-                    )}
-                  </For>
-                </div>
               </Show>
             </div>
 
@@ -553,6 +554,18 @@ function QueryTab(props: QueryTabProps) {
                 </Match>
                 <Match when={view() === "messages"}>
                   <div class={styles.Messages}>
+                    <Show when={runStats().length > 0}>
+                      <div class={styles.Stats}>
+                        <For each={runStats()}>
+                          {stat => (
+                            <span class={styles.Stat} title={stat.hint}>
+                              <span class={styles.StatLabel}>{stat.label}</span>
+                              <span class={styles.StatValue}>{stat.value}</span>
+                            </span>
+                          )}
+                        </For>
+                      </div>
+                    </Show>
                     <Show when={runError()}>
                       <div class={`${styles.Message} ${styles.Failed}`}>
                         <CircleAlert size={14} />

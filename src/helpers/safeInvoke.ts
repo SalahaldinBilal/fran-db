@@ -1,7 +1,7 @@
 import { invoke, InvokeOptions } from "@tauri-apps/api/core";
 import {
   BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, ConnectionProfile, DatabaseInfo, DatabaseKind, DesignOptions,
-  HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, ResultSet, RowChange, SavedQuery, ServerInfo,
+  HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, RowChange, SavedQuery, ServerInfo,
   SessionInfo, SqlTemplate, StatementOutcome, StatementRange, TableDesign, VaultStatus,
 } from "@core/types";
 
@@ -43,7 +43,6 @@ type Commands = {
   "list_databases": Command<{ sessionId: string }, DatabaseInfo[]>,
   "list_objects": Command<{ sessionId: string, database: string }, ObjectInfo[]>,
   "get_object_structure": Command<{ sessionId: string, database: string, name: string, kind: ObjectKind, signature: string | null }, ObjectStructure>,
-  "fetch_table_rows": Command<{ sessionId: string, database: string, table: string, offset: number, limit: number, search: string | null }, ResultSet>,
   "get_primary_key": Command<{ sessionId: string, database: string, table: string }, string[]>,
   "get_column_choices": Command<{ sessionId: string, database: string, table: string, column: string }, ColumnChoices | null>,
   "open_query_context": Command<{ sessionId: string, database: string | null }, number>,

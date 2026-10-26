@@ -78,43 +78,6 @@ fn is_number(value: &str) -> bool {
     mantissa_ok && exponent_ok
 }
 
-fn escape_like(value: &str) -> String {
-    let mut escaped = String::with_capacity(value.len());
-    for character in value.chars() {
-        if matches!(character, '!' | '%' | '_') {
-            escaped.push('!');
-        }
-        escaped.push(character);
-    }
-    escaped
-}
-
-/// Matches rows where any column, as displayed, contains `term`. Bytea and PostGIS columns match on their hex.
-pub fn search_condition(dialect: Dialect, columns: &[ColumnMeta], term: &str) -> String {
-    let pattern = dialect.string_literal(&format!("%{}%", escape_like(term)));
-    let hex = term.strip_prefix("0x").or_else(|| term.strip_prefix("0X")).unwrap_or(term);
-    let hex_pattern = (!hex.is_empty() && hex.chars().all(|character| character.is_ascii_hexdigit()))
-        .then(|| format!("'%{}%'", hex.to_ascii_lowercase()));
-
-    let conditions: Vec<String> = columns
-        .iter()
-        .filter_map(|column| {
-            let name = quote_identifier(&column.name);
-            match column.category {
-                ValueCategory::Binary => hex_pattern.as_ref().map(|hex| format!("encode({name}, 'hex') ILIKE {hex}")),
-                ValueCategory::Spatial => hex_pattern.as_ref().map(|hex| format!("CAST({name} AS text) ILIKE {hex}")),
-                _ => Some(format!("CAST({name} AS text) ILIKE {pattern} ESCAPE '!'")),
-            }
-        })
-        .collect();
-
-    if conditions.is_empty() {
-        "FALSE".to_string()
-    } else {
-        conditions.join(" OR ")
-    }
-}
-
 fn source_identifier(meta: &ColumnMeta) -> AppResult<String> {
     meta.source_name
         .as_deref()
@@ -374,18 +337,5 @@ mod tests {
     #[test]
     fn quotes_identifiers() {
         assert_eq!(qualified("my schema", r#"a"b"#), r#""my schema"."a""b""#);
-    }
-
-    #[test]
-    fn builds_search_conditions() {
-        let columns = vec![
-            column("id", ValueCategory::Integer, true),
-            column("data", ValueCategory::Binary, false),
-        ];
-        assert_eq!(
-            search_condition(Dialect::default(), &columns, "Ab"),
-            r#"CAST("id" AS text) ILIKE '%Ab%' ESCAPE '!' OR encode("data", 'hex') ILIKE '%ab%'"#
-        );
-        assert_eq!(search_condition(Dialect::default(), &columns[1..], "zz"), "FALSE");
     }
 }

@@ -23,7 +23,7 @@ use crate::connections::SecretBag;
 use crate::db::session::{ContextId, DatabaseSession};
 use crate::db::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
-    ObjectStructure, ResultSet, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
+    ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
 };
 use crate::error::{AppError, AppResult};
 use crate::ssh::{SshTunnel, known_hosts::KnownHosts};
@@ -355,22 +355,6 @@ impl DatabaseSession for PostgresSession {
         let mut slot = self.meta.lock().await;
         let live = self.ensure_live(&mut slot, None).await?;
         let result = metadata::database_sql(&mut live.conn, database, template).await;
-        settle(&mut slot, result)
-    }
-
-    async fn fetch_rows(
-        &self,
-        database: &str,
-        table: &str,
-        offset: u64,
-        limit: u64,
-        search: Option<&str>,
-    ) -> AppResult<ResultSet> {
-        let dialect = self.dialect();
-        let mut slot = self.meta.lock().await;
-        let live = self.ensure_live(&mut slot, None).await?;
-        let result =
-            metadata::fetch_rows(&mut live.conn, &self.types, dialect, database, table, offset, limit, search).await;
         settle(&mut slot, result)
     }
 

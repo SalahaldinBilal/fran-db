@@ -68,7 +68,6 @@ pub fn run() {
             db::commands::list_databases,
             db::commands::list_objects,
             db::commands::get_object_structure,
-            db::commands::fetch_table_rows,
             db::commands::get_primary_key,
             db::commands::get_column_choices,
             db::commands::open_query_context,
