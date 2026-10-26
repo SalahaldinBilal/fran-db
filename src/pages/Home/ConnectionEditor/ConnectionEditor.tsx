@@ -18,7 +18,6 @@ import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
 import ColorPicker from "@core/components/ColorPicker/ColorPicker";
 import { tooltip } from "@core/components/Tooltip/Tooltip";
-import AgentAccessSection from "./AgentAccessSection";
 
 const COLORS = ["#4a88c7", "#4fa37a", "#c9a34a", "#d07a3c", "#c75450", "#9a6fc4", "#7d8590"];
 
@@ -50,7 +49,6 @@ function ConnectionEditor(props: ConnectionEditorProps) {
   const isNew = createMemo(() => !draft.id);
   const target = createMemo(() => withDatabaseModule(draft, (module, options) => module.describeTarget(options)));
   const suggestedName = createMemo(() => withDatabaseModule(draft, (module, options) => module.suggestName(options)));
-  const displayName = createMemo(() => draft.name.trim() || suggestedName());
 
   createEffect(on(() => [props.show, props.profile] as const, ([show, profile]) => {
     if (!show) return;
@@ -242,16 +240,6 @@ function ConnectionEditor(props: ConnectionEditorProps) {
         {withDatabaseModule(draft, (module, options) => (
           <module.ConnectionForm options={options} update={updateOptions} secrets={secretEditor} />
         ))}
-
-        <div class={styles.Divider} />
-
-        <AgentAccessSection
-          access={draft.agentAccess}
-          kind={draft.kind}
-          connectionId={draft.id}
-          connectionName={displayName()}
-          onChange={access => setDraft("agentAccess", reconcile(access))}
-        />
       </div>
     </Modal>
   );
