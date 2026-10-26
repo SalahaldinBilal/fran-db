@@ -66,6 +66,7 @@ function SchemaTree(props: { sessionId: string }) {
     const expanded = createMemo(() => session()?.expanded[name()] ?? false);
     const selected = createMemo(() => session()?.selectedDatabase === name());
     const objects = createMemo(() => session()?.objects[name()]);
+    const size = createMemo(() => session()?.databaseSizes[name()]);
     const filteredObjects = createMemo(() => {
       const items = objects()?.items ?? [];
       const query = needle();
@@ -102,6 +103,9 @@ function SchemaTree(props: { sessionId: string }) {
           <span class={styles.Name}>{name()}</span>
           <Show when={objects()?.status === "loading"}>
             <Spinner size={12} />
+          </Show>
+          <Show when={size()}>
+            {bytes => <span class={styles.Meta}>{formatBytes(bytes())}</span>}
           </Show>
         </div>
 

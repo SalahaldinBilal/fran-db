@@ -1,5 +1,5 @@
 import { createRoot } from "solid-js";
-import { createStore, produce } from "solid-js/store";
+import { createStore, produce, reconcile } from "solid-js/store";
 import { safeInvoke } from "@core/helpers/safeInvoke";
 import { withConnectPrompts } from "@core/helpers/connectFlow";
 import { generateId } from "@core/helpers";
@@ -56,6 +56,7 @@ export type SessionState = {
   selectedDatabase: string | null,
   scopes: Record<string, DatabaseScope>,
   databases: Loadable<DatabaseInfo[]>,
+  databaseSizes: Record<string, number>,
   objects: Record<string, Loadable<ObjectInfo[]>>,
   columns: Record<string, Loadable<CatalogColumn[]>>,
   expanded: Record<string, boolean>,
@@ -277,6 +278,7 @@ function useWorkspaceStateInner() {
       selectedDatabase,
       scopes,
       databases: { status: "idle", items: [], error: null },
+      databaseSizes: {},
       objects: {},
       columns: {},
       expanded,
@@ -377,9 +379,20 @@ function useWorkspaceStateInner() {
       const items = await safeInvoke("list_databases", { sessionId });
       if (!store.sessions[sessionId]) return;
       setStore("sessions", sessionId, "databases", { status: "ready", items, error: null });
+      loadDatabaseSizes(sessionId);
     } catch (error) {
       if (!store.sessions[sessionId]) return;
       setStore("sessions", sessionId, "databases", { status: "error", error });
+    }
+  }
+
+  async function loadDatabaseSizes(sessionId: string) {
+    try {
+      const sizes = await safeInvoke("get_database_sizes", { sessionId });
+      if (!store.sessions[sessionId]) return;
+      setStore("sessions", sessionId, "databaseSizes", reconcile(Object.fromEntries(sizes.map(size => [size.name, size.sizeBytes]))));
+    } catch (error) {
+      if (store.sessions[sessionId]) pushError(error);
     }
   }
 
@@ -428,7 +441,7 @@ function useWorkspaceStateInner() {
 
   // After DDL the object list and column catalog are stale.
   async function refreshCatalog(sessionId: string, database: string) {
-    await Promise.all([loadObjects(sessionId, database), loadColumns(sessionId, database)]);
+    await Promise.all([loadObjects(sessionId, database), loadColumns(sessionId, database), loadDatabaseSizes(sessionId)]);
   }
 
   function toggleExpanded(sessionId: string, database: string) {

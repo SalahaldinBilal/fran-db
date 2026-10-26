@@ -22,7 +22,7 @@ use super::types::TypeCache;
 use crate::connections::SecretBag;
 use crate::db::session::{ContextId, DatabaseSession};
 use crate::db::types::{
-    BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
+    BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
     ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
 };
 use crate::error::{AppError, AppResult};
@@ -305,6 +305,13 @@ impl DatabaseSession for PostgresSession {
         let mut slot = self.meta.lock().await;
         let live = self.ensure_live(&mut slot, None).await?;
         let result = metadata::list_databases(&mut live.conn).await;
+        settle(&mut slot, result)
+    }
+
+    async fn database_sizes(&self) -> AppResult<Vec<DatabaseSize>> {
+        let mut slot = self.meta.lock().await;
+        let live = self.ensure_live(&mut slot, None).await?;
+        let result = metadata::database_sizes(&mut live.conn).await;
         settle(&mut slot, result)
     }
 

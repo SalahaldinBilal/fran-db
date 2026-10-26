@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::types::{
-    BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
+    BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
     ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
 };
 use crate::error::{AppError, AppResult};
@@ -30,6 +30,9 @@ pub trait DatabaseSession: Send + Sync {
     }
 
     async fn list_databases(&self) -> AppResult<Vec<DatabaseInfo>>;
+
+    /// Kept apart from `list_databases` because summing sizes can be slow on big servers.
+    async fn database_sizes(&self) -> AppResult<Vec<DatabaseSize>>;
 
     async fn list_objects(&self, database: &str) -> AppResult<Vec<ObjectInfo>>;
 

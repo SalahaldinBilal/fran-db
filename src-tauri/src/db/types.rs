@@ -20,6 +20,13 @@ pub struct DatabaseInfo {
     pub system: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseSize {
+    pub name: String,
+    pub size_bytes: u64,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ObjectKind {

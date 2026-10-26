@@ -8,7 +8,7 @@ use super::{
     sessions::{OpenSession, SessionInfo, SessionManager},
     split_statements,
     types::{
-        BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
+        BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
         ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, StatementRange, TableDesign,
     },
 };
@@ -104,6 +104,14 @@ pub async fn list_databases(
     session_id: String,
 ) -> AppResult<Vec<DatabaseInfo>> {
     sessions.get(&session_id)?.session.list_databases().await
+}
+
+#[tauri::command]
+pub async fn get_database_sizes(
+    sessions: State<'_, SessionManager>,
+    session_id: String,
+) -> AppResult<Vec<DatabaseSize>> {
+    sessions.get(&session_id)?.session.database_sizes().await
 }
 
 #[tauri::command]

@@ -20,7 +20,7 @@ use super::splitter;
 use super::sqlgen;
 use crate::db::session::{ContextId, DatabaseSession};
 use crate::db::types::{
-    BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DesignOptions, ObjectInfo, ObjectKind,
+    BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
     ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
 };
 use crate::error::{AppError, AppResult};
@@ -141,6 +141,10 @@ impl DatabaseSession for SqliteSession {
 
     async fn list_databases(&self) -> AppResult<Vec<DatabaseInfo>> {
         metadata::list_databases(self.meta().as_ref()).await
+    }
+
+    async fn database_sizes(&self) -> AppResult<Vec<DatabaseSize>> {
+        metadata::database_sizes(self.meta().as_ref()).await
     }
 
     async fn list_objects(&self, database: &str) -> AppResult<Vec<ObjectInfo>> {
@@ -387,6 +391,8 @@ mod tests {
 
         let databases = session.list_databases().await.unwrap();
         assert_eq!(databases.iter().map(|database| database.name.as_str()).collect::<Vec<_>>(), vec!["main"]);
+        let sizes = session.database_sizes().await.unwrap();
+        assert!(sizes.len() == 1 && sizes[0].name == "main" && sizes[0].size_bytes > 0);
 
         let objects = session.list_objects("main").await.unwrap();
         let names: Vec<_> = objects.iter().map(|object| object.name.as_str()).collect();

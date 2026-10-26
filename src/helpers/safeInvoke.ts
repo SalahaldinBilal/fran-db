@@ -1,6 +1,6 @@
 import { invoke, InvokeOptions } from "@tauri-apps/api/core";
 import {
-  BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, ConnectionProfile, DatabaseInfo, DatabaseKind, DesignOptions,
+  BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, ConnectionProfile, DatabaseInfo, DatabaseKind, DatabaseSize, DesignOptions,
   HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, RowChange, SavedQuery, ServerInfo,
   SessionInfo, SqlTemplate, StatementOutcome, StatementRange, TableDesign, VaultStatus,
 } from "@core/types";
@@ -41,6 +41,7 @@ type Commands = {
   "list_catalogs": Command<{ sessionId: string }, string[]>,
   "switch_catalog": Command<{ sessionId: string, catalog: string }, SessionInfo>,
   "list_databases": Command<{ sessionId: string }, DatabaseInfo[]>,
+  "get_database_sizes": Command<{ sessionId: string }, DatabaseSize[]>,
   "list_objects": Command<{ sessionId: string, database: string }, ObjectInfo[]>,
   "get_object_structure": Command<{ sessionId: string, database: string, name: string, kind: ObjectKind, signature: string | null }, ObjectStructure>,
   "get_primary_key": Command<{ sessionId: string, database: string, table: string }, string[]>,

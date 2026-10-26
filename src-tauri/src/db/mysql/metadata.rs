@@ -3,7 +3,7 @@ use mysql_async::{Conn, Row, prelude::Queryable};
 use super::sqlgen::{Dialect, qualified, quote_identifier};
 use super::values::{format_value, parse_choices};
 use crate::db::types::{
-    CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
+    CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, DatabaseSize, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
     ObjectKind, ObjectStructure, ServerInfo, SqlTemplate, ValueCategory,
 };
 use crate::error::{AppError, AppResult};
@@ -195,6 +195,20 @@ pub async fn list_databases(conn: &mut Conn) -> Result<Vec<DatabaseInfo>, mysql_
                 system,
             }
         })
+        .collect())
+}
+
+pub async fn database_sizes(conn: &mut Conn) -> Result<Vec<DatabaseSize>, mysql_async::Error> {
+    let rows: Vec<Row> = conn
+        .query(
+            "SELECT TABLE_SCHEMA, CAST(SUM(DATA_LENGTH + INDEX_LENGTH) AS UNSIGNED) \
+             FROM information_schema.TABLES WHERE TABLE_TYPE = 'BASE TABLE' GROUP BY TABLE_SCHEMA",
+        )
+        .await?;
+
+    Ok(rows
+        .iter()
+        .filter_map(|row| Some(DatabaseSize { name: name(row, 0), size_bytes: number(row, 1)? }))
         .collect())
 }
 

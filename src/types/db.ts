@@ -28,6 +28,11 @@ export type DatabaseInfo = {
   system: boolean,
 };
 
+export type DatabaseSize = {
+  name: string,
+  sizeBytes: number,
+};
+
 export type ObjectKind =
   | "table" | "view" | "materializedView" | "sequence" | "procedure" | "function" | "trigger" | "event";
 

@@ -2,7 +2,7 @@ use super::connection::{SqlValue, SqliteConnection};
 use super::definition;
 use super::sqlgen::{qualified, quote_identifier, string_literal};
 use crate::db::types::{
-    CatalogColumn, ColumnDefinition, DatabaseInfo, ForeignKeyDefinition, IndexDefinition, ObjectInfo, ObjectKind,
+    CatalogColumn, ColumnDefinition, DatabaseInfo, DatabaseSize, ForeignKeyDefinition, IndexDefinition, ObjectInfo, ObjectKind,
     ObjectStructure, SqlTemplate,
 };
 use crate::error::{AppError, AppResult};
@@ -134,6 +134,22 @@ pub async fn list_databases(conn: &dyn SqliteConnection) -> AppResult<Vec<Databa
         Err(_) => vec!["main".to_string()],
     };
     Ok(names.into_iter().map(|name| DatabaseInfo { name, system: false }).collect())
+}
+
+async fn pragma_number(conn: &dyn SqliteConnection, schema: &str, name: &str) -> Option<u64> {
+    let found = rows(conn, &format!("PRAGMA {}.{name}", quote_identifier(schema)), &[]).await.ok()?;
+    u64::try_from(int(found.first()?, 0)).ok()
+}
+
+/// Databases whose page counts the backend won't report are left out.
+pub async fn database_sizes(conn: &dyn SqliteConnection) -> AppResult<Vec<DatabaseSize>> {
+    let mut sizes = Vec::new();
+    for database in list_databases(conn).await? {
+        let Some(pages) = pragma_number(conn, &database.name, "page_count").await else { continue };
+        let Some(page_size) = pragma_number(conn, &database.name, "page_size").await else { continue };
+        sizes.push(DatabaseSize { name: database.name, size_bytes: pages * page_size });
+    }
+    Ok(sizes)
 }
 
 fn trigger_detail(sql: &str, table: &str) -> String {

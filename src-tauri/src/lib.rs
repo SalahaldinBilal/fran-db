@@ -66,6 +66,7 @@ pub fn run() {
             db::commands::list_catalogs,
             db::commands::switch_catalog,
             db::commands::list_databases,
+            db::commands::get_database_sizes,
             db::commands::list_objects,
             db::commands::get_object_structure,
             db::commands::get_primary_key,

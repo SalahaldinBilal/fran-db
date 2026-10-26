@@ -2,7 +2,7 @@ use super::client::{PgConnection, PgError, TextRow};
 use super::ddl;
 use super::sqlgen::{Dialect, qualified, quote_identifier};
 use crate::db::types::{
-    CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
+    CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, DatabaseSize, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
     ObjectKind, ObjectStructure, SqlTemplate,
 };
 use crate::error::AppError;
@@ -57,6 +57,27 @@ pub async fn list_databases(conn: &mut PgConnection) -> Result<Vec<DatabaseInfo>
                 system: SYSTEM_SCHEMAS.contains(&schema.as_str()),
                 name: schema,
             }
+        })
+        .collect())
+}
+
+/// Partitioned parents have no storage of their own, so only plain tables and materialized views are summed.
+pub async fn database_sizes(conn: &mut PgConnection) -> Result<Vec<DatabaseSize>, PgError> {
+    let rows = conn
+        .query_text(
+            "SELECT n.nspname, sum(pg_total_relation_size(c.oid))::bigint::text \
+             FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace \
+             WHERE c.relkind IN ('r', 'm') AND n.nspname !~ '^pg_(toast|temp_)' \
+             GROUP BY n.nspname",
+            &[],
+        )
+        .await?;
+
+    Ok(rows
+        .iter()
+        .filter_map(|row| {
+            let size_bytes = text(row, 1)?.parse().ok()?;
+            Some(DatabaseSize { name: name(row, 0), size_bytes })
         })
         .collect())
 }
