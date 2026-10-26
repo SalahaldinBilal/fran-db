@@ -1,5 +1,5 @@
 import styles from "./TabStrip.module.scss";
-import { For, JSX, Show, createEffect, createMemo, createSignal, on } from "solid-js";
+import { For, JSX, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { LucideIcon, X } from "lucide-solid";
 
@@ -13,6 +13,7 @@ export type TabStripItem = {
   renamable?: boolean,
   modified?: boolean,
   busy?: boolean,
+  movable?: boolean,
 };
 
 export type TabStripApi = {
@@ -26,6 +27,7 @@ export type TabStripProps = {
   onClose?: (id: string) => void,
   onRename?: (id: string, label: string) => void,
   onContextMenu?: (event: MouseEvent, id: string) => void,
+  onReorder?: (id: string, toIndex: number) => void,
   onReady?: (api: TabStripApi) => void,
   variant?: "global" | "inner",
   leading?: JSX.Element,
@@ -36,11 +38,39 @@ export type TabStripProps = {
   locked?: boolean,
 };
 
+const DRAG_THRESHOLD = 4;
+const SCROLL_EDGE = 32;
+const SCROLL_STEP = 8;
+
+type TabDrag = {
+  id: string,
+  target: number,
+  offsets: Record<string, number>,
+};
+
+type DragGesture = {
+  id: string,
+  pointerId: number,
+  startX: number,
+  x: number,
+  started: boolean,
+  from: number,
+  min: number,
+  max: number,
+  startScroll: number,
+  lefts: number[],
+  widths: number[],
+  gap: number,
+};
+
 function TabStrip(props: TabStripProps) {
   const tabElements = new Map<string, HTMLElement>();
   const [renaming, setRenaming] = createSignal<string | null>(null);
+  const [drag, setDrag] = createSignal<TabDrag | null>(null);
   const dragAttribute = createMemo(() => (props.dragRegion ? "" : undefined));
   let scroller!: HTMLDivElement;
+  let gesture: DragGesture | null = null;
+  let scrollFrame = 0;
 
   createEffect(on(() => props.activeId, id => {
     if (id) tabElements.get(id)?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -54,10 +84,136 @@ function TabStrip(props: TabStripProps) {
     if (label) props.onRename?.(id, label);
   }
 
+  function movableRange(from: number): [number, number] {
+    let min = from;
+    let max = from;
+    while (props.items[min - 1]?.movable) min--;
+    while (props.items[max + 1]?.movable) max++;
+    return [min, max];
+  }
+
+  function beginDrag(event: PointerEvent, item: TabStripItem) {
+    if (event.button !== 0 || !item.movable || !props.onReorder || renaming() === item.id) return;
+    if ((event.target as HTMLElement).closest("button, input")) return;
+
+    const from = props.items.findIndex(candidate => candidate.id === item.id);
+    const [min, max] = movableRange(from);
+    if (min === max) return;
+
+    gesture = {
+      id: item.id,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      x: event.clientX,
+      started: false,
+      from,
+      min,
+      max,
+      startScroll: 0,
+      lefts: [],
+      widths: [],
+      gap: 0,
+    };
+    window.addEventListener("pointermove", moveDrag);
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", cancelDrag);
+  }
+
+  function startDrag(current: DragGesture) {
+    props.onSelect(current.id);
+    current.started = true;
+    current.startScroll = scroller.scrollLeft;
+    current.gap = parseFloat(getComputedStyle(scroller).columnGap) || 0;
+    for (const item of props.items) {
+      const rect = tabElements.get(item.id)?.getBoundingClientRect();
+      current.lefts.push((rect?.left ?? 0) + scroller.scrollLeft);
+      current.widths.push(rect?.width ?? 0);
+    }
+    tabElements.get(current.id)?.setPointerCapture(current.pointerId);
+    scrollFrame = requestAnimationFrame(scrollWhileDragging);
+  }
+
+  function moveDrag(event: PointerEvent) {
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    gesture.x = event.clientX;
+    if (!gesture.started) {
+      if (Math.abs(gesture.x - gesture.startX) < DRAG_THRESHOLD) return;
+      startDrag(gesture);
+    }
+    updateDrag(gesture);
+  }
+
+  function updateDrag(current: DragGesture) {
+    const { from, min, max, lefts, widths } = current;
+    const width = widths[from];
+    const moved = current.x - current.startX + scroller.scrollLeft - current.startScroll;
+    const left = Math.min(Math.max(lefts[from] + moved, lefts[min]), lefts[max] + widths[max] - width);
+    const center = left + width / 2;
+
+    let target = from;
+    for (let index = from + 1; index <= max; index++) {
+      if (center > lefts[index] + widths[index] / 2) target = index;
+    }
+    for (let index = from - 1; index >= min; index--) {
+      if (center < lefts[index] + widths[index] / 2) target = index;
+    }
+
+    const shift = width + current.gap;
+    const offsets: Record<string, number> = { [current.id]: left - lefts[from] };
+    for (let index = Math.min(from, target); index <= Math.max(from, target); index++) {
+      if (index !== from) offsets[props.items[index].id] = index > from ? -shift : shift;
+    }
+    setDrag({ id: current.id, target, offsets });
+  }
+
+  function scrollWhileDragging() {
+    if (!gesture?.started) return;
+    const bounds = scroller.getBoundingClientRect();
+    const step = gesture.x < bounds.left + SCROLL_EDGE ? -SCROLL_STEP
+      : gesture.x > bounds.right - SCROLL_EDGE ? SCROLL_STEP
+      : 0;
+    if (step !== 0) {
+      const before = scroller.scrollLeft;
+      scroller.scrollLeft += step;
+      if (scroller.scrollLeft !== before) updateDrag(gesture);
+    }
+    scrollFrame = requestAnimationFrame(scrollWhileDragging);
+  }
+
+  function finishDrag(commit: boolean) {
+    window.removeEventListener("pointermove", moveDrag);
+    window.removeEventListener("pointerup", endDrag);
+    window.removeEventListener("pointercancel", cancelDrag);
+    cancelAnimationFrame(scrollFrame);
+
+    const current = gesture;
+    const target = drag()?.target;
+    gesture = null;
+    setDrag(null);
+    if (commit && current?.started && target !== undefined && target !== current.from) {
+      props.onReorder?.(current.id, target);
+    }
+  }
+
+  function endDrag(event: PointerEvent) {
+    if (event.pointerId === gesture?.pointerId) finishDrag(true);
+  }
+
+  function cancelDrag(event: PointerEvent) {
+    if (event.pointerId === gesture?.pointerId) finishDrag(false);
+  }
+
+  onCleanup(() => finishDrag(false));
+
+  function tabTransform(id: string): string | undefined {
+    const offset = drag()?.offsets[id];
+    return offset ? `translateX(${offset}px)` : undefined;
+  }
+
   return (
     <div
       class={`${styles.Strip} ${styles[props.variant ?? "inner"]}`}
-      classList={{ [styles.Locked]: props.locked ?? false }}
+      classList={{ [styles.Locked]: props.locked ?? false, [styles.Dragging]: drag() !== null }}
       data-tauri-drag-region={dragAttribute()}
     >
       <Show when={props.leading}>
@@ -82,8 +238,13 @@ function TabStrip(props: TabStripProps) {
               tabIndex={0}
               aria-selected={item.id === props.activeId}
               class={styles.Tab}
-              classList={{ [styles.Active]: item.id === props.activeId, [styles.Tinted]: !!item.tint }}
-              style={{ "--tint": item.tint ?? undefined }}
+              classList={{
+                [styles.Active]: item.id === props.activeId,
+                [styles.Tinted]: !!item.tint,
+                [styles.Lifted]: drag()?.id === item.id,
+              }}
+              style={{ "--tint": item.tint ?? undefined, transform: tabTransform(item.id) }}
+              onPointerDown={event => beginDrag(event, item)}
               onClick={() => props.onSelect(item.id)}
               onDblClick={() => {
                 if (item.renamable) setRenaming(item.id);

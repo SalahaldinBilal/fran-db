@@ -30,6 +30,13 @@ export function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(2)} s`;
 }
 
+export function keepOrder<T>(previous: T[], next: T[]): T[] {
+  const present = new Set(next);
+  const kept = previous.filter(item => present.has(item));
+  const known = new Set(kept);
+  return [...kept, ...next.filter(item => !known.has(item))];
+}
+
 export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : pluralForm}`;
 }

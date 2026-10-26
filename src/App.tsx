@@ -24,6 +24,7 @@ import WindowControls from "./components/WindowControls/WindowControls";
 import { installGlobalContextMenu } from "./helpers/globalContextMenu";
 import { IS_MAC } from "./helpers/platform";
 import { safeInvoke } from "./helpers/safeInvoke";
+import { keepOrder } from "./helpers";
 
 function App() {
   const workspace = useWorkspaceState;
@@ -44,15 +45,18 @@ function App() {
         dot: session?.profile.color,
         tint: useSettingsState.settings.colorFill ? session?.profile.color : null,
         closable: true,
+        movable: true,
       };
     }),
   );
 
   const titleBarLeading = createMemo(() => (IS_MAC ? <div class={styles.TrafficLights} data-tauri-drag-region /> : undefined));
 
-  const sessionIds = createMemo(() =>
+  // Pages keep their DOM order when tabs move, since moving a node resets its scroll.
+  const sessionIds = createMemo<string[]>(previous => keepOrder(
+    previous,
     workspace.store.globalTabs.flatMap(tab => (tab.kind === "session" ? [tab.sessionId] : [])),
-  );
+  ), []);
 
   installGlobalContextMenu();
 
@@ -81,6 +85,7 @@ function App() {
         activeId={workspace.store.activeGlobalTabId}
         onSelect={workspace.activateGlobalTab}
         onClose={workspace.closeSession}
+        onReorder={workspace.moveGlobalTab}
         onContextMenu={(event, id) => {
           if (id === HOME_TAB_ID) return;
           openContextMenu(event, [

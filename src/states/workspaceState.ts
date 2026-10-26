@@ -156,6 +156,13 @@ function restoreTab(saved: PersistedTab, selectRowsSql: (table: string) => strin
   }
 }
 
+function moveItem<T extends { id: string }>(items: T[], id: string, toIndex: number) {
+  const from = items.findIndex(item => item.id === id);
+  if (from < 0 || from === toIndex) return;
+  const [item] = items.splice(from, 1);
+  items.splice(toIndex, 0, item);
+}
+
 function useWorkspaceStateInner() {
   const { pushError, pushToast } = useToastState;
   const [store, setStore] = createStore<WorkspaceStore>({
@@ -586,6 +593,15 @@ function useWorkspaceStateInner() {
     schedulePersist(sessionId);
   }
 
+  function moveTab(sessionId: string, database: string, tabId: string, toIndex: number) {
+    setStore("sessions", sessionId, "scopes", database, "tabs", produce(tabs => moveItem(tabs, tabId, toIndex)));
+    schedulePersist(sessionId);
+  }
+
+  function moveGlobalTab(id: string, toIndex: number) {
+    setStore("globalTabs", produce(tabs => moveItem(tabs, id, toIndex)));
+  }
+
   return {
     store,
     queryText,
@@ -611,6 +627,8 @@ function useWorkspaceStateInner() {
     activateTab,
     closeTab,
     closeOtherTabs,
+    moveGlobalTab,
+    moveTab,
   };
 }
 

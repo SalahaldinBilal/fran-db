@@ -83,6 +83,15 @@
   }
 }
 
+.Dragging .Tab {
+  transition: var(--transition-colors), transform var(--duration-fast) var(--ease);
+
+  &.Lifted {
+    z-index: 1;
+    transition: var(--transition-colors);
+  }
+}
+
 .Dot {
   width: 8px;
   height: 8px;

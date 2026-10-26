@@ -10,6 +10,7 @@ import TabStrip, { TabStripApi, TabStripItem } from "@core/components/TabStrip/T
 import Button from "@core/components/Button/Button";
 import EmptyState from "@core/components/EmptyState/EmptyState";
 import { tooltip } from "@core/components/Tooltip/Tooltip";
+import { keepOrder } from "@core/helpers";
 import QueryTab from "../../tabs/QueryTab/QueryTab";
 import StructureTab from "../../tabs/StructureTab/StructureTab";
 import TableDesignerTab from "../../tabs/TableDesignerTab/TableDesignerTab";
@@ -45,8 +46,11 @@ function DatabaseTabs(props: DatabaseTabsProps) {
       icon: tabIcon(tab),
       closable: true,
       renamable: true,
+      movable: true,
     })),
   );
+  // Panels keep their DOM order when tabs move, since moving a node resets its scroll.
+  const panelTabs = createMemo<DatabaseTab[]>(previous => keepOrder(previous, scope()?.tabs ?? []), []);
 
   onMount(() => workspace.ensureCatalog(props.sessionId, props.database));
 
@@ -92,6 +96,7 @@ function DatabaseTabs(props: DatabaseTabsProps) {
           onSelect={id => workspace.activateTab(props.sessionId, props.database, id)}
           onClose={closeTab}
           onRename={renameTab}
+          onReorder={(id, toIndex) => workspace.moveTab(props.sessionId, props.database, id, toIndex)}
           onContextMenu={(event, id) => openContextMenu(event, [
             { label: "Rename", hint: "F2", onSelect: () => strip?.startRename(id) },
             { separator: true },
@@ -122,7 +127,7 @@ function DatabaseTabs(props: DatabaseTabsProps) {
             />
           }
         >
-          <For each={scope()?.tabs ?? []}>
+          <For each={panelTabs()}>
             {tab => (
               <div class={styles.Panel} classList={{ [styles.Hidden]: scope()?.activeTabId !== tab.id }}>
                 <Switch>

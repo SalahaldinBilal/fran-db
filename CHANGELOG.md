@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Each database (or schema on PostgreSQL) shows its total size next to its name in the tree.
 - Query results that can be edited have an Add row button, including results from an empty table.
 - Query results from Cloudflare D1 can be edited when the query reads one table and lists its columns by name or with `*`.
+- Connection tabs and the tabs inside a database can be reordered by dragging them.
 
 ### Changed
 
