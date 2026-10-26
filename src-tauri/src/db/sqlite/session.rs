@@ -9,6 +9,7 @@ use std::{
 
 use async_trait::async_trait;
 
+use super::classify;
 use super::connection::{RawResult, SqliteConnection, SqliteConnector};
 use super::design;
 use super::local::LocalConnector;
@@ -18,10 +19,12 @@ use super::results::{self, Timing, milliseconds};
 use super::source;
 use super::splitter;
 use super::sqlgen;
-use crate::db::session::{ContextId, DatabaseSession, OutcomeSink};
+use crate::db::classify::ClassifiedStatement;
+use crate::db::read_query;
+use crate::db::session::{ContextAccess, ContextId, DatabaseSession, OutcomeSink};
 use crate::db::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
-    ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
+    ObjectStructure, ReadQuery, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign, TableForeignKey,
 };
 use crate::error::{AppError, AppResult};
 
@@ -188,6 +191,22 @@ impl DatabaseSession for SqliteSession {
         Ok(None)
     }
 
+    async fn foreign_keys(&self, database: &str) -> AppResult<Vec<TableForeignKey>> {
+        metadata::database_foreign_keys(self.meta().as_ref(), database, &self.is_internal()).await
+    }
+
+    fn classify(&self, sql: &str) -> Vec<ClassifiedStatement> {
+        classify::classify(sql)
+    }
+
+    fn read_sql(&self, database: &str, query: &ReadQuery) -> AppResult<String> {
+        read_query::read_sql(&sqlgen::Quoting, database, query)
+    }
+
+    fn explain_sql(&self, sql: &str) -> String {
+        format!("EXPLAIN QUERY PLAN {sql}")
+    }
+
     fn row_changes_sql(
         &self,
         database: &str,
@@ -235,8 +254,12 @@ impl DatabaseSession for SqliteSession {
     }
 
     /// Unqualified names resolve across every attached database, so a context doesn't need one picked.
-    async fn open_context(&self, _database: Option<String>) -> AppResult<ContextId> {
-        let conn = self.target().connector.connect().await?;
+    async fn open_context(&self, _database: Option<String>, access: ContextAccess) -> AppResult<ContextId> {
+        let connector = self.target().connector.clone();
+        let conn = match access {
+            ContextAccess::ReadWrite => connector.connect().await?,
+            ContextAccess::ReadOnly => connector.connect_read_only().await?,
+        };
         let id = self.next_context.fetch_add(1, Ordering::SeqCst);
         self.contexts
             .lock()
@@ -356,7 +379,7 @@ mod tests {
     #[tokio::test]
     async fn runs_scripts_and_describes_results() {
         let (session, _file) = session().await;
-        let context = session.open_context(None).await.unwrap();
+        let context = session.open_context(None, ContextAccess::ReadWrite).await.unwrap();
 
         let outcomes = session.execute(context, SCHEMA, 100).await.unwrap();
         assert_eq!(outcomes.len(), 5);
@@ -391,7 +414,7 @@ mod tests {
     #[tokio::test]
     async fn reads_metadata() {
         let (session, _file) = session().await;
-        let context = session.open_context(None).await.unwrap();
+        let context = session.open_context(None, ContextAccess::ReadWrite).await.unwrap();
         session.execute(context, SCHEMA, 100).await.unwrap();
 
         let databases = session.list_databases().await.unwrap();
@@ -427,9 +450,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn read_only_contexts_refuse_writes() {
+        let (session, _file) = session().await;
+        let writer = session.open_context(None, ContextAccess::ReadWrite).await.unwrap();
+        session.execute(writer, SCHEMA, 100).await.unwrap();
+
+        let reader = session.open_context(None, ContextAccess::ReadOnly).await.unwrap();
+        let outcomes = session.execute(reader, "DELETE FROM posts", 10).await.unwrap();
+        assert!(outcomes[0].error.is_some());
+        let outcomes = session.execute(reader, "SELECT COUNT(*) FROM users", 10).await.unwrap();
+        assert_eq!(outcomes[0].result_sets[0].rows, vec![vec![Some("2".to_string())]]);
+
+        let keys = session.foreign_keys("main").await.unwrap();
+        assert_eq!(keys.len(), 1);
+        assert_eq!((keys[0].table.as_str(), keys[0].key.referenced_table.as_str()), ("posts", "users"));
+
+        let sql = session
+            .read_sql("main", &ReadQuery::Count { table: "users".to_string(), filters: Vec::new() })
+            .unwrap();
+        let outcomes = session.execute(reader, &sql, 10).await.unwrap();
+        assert_eq!(outcomes[0].result_sets[0].rows, vec![vec![Some("2".to_string())]]);
+    }
+
+    #[tokio::test]
     async fn edits_untyped_columns() {
         let (session, _file) = session().await;
-        let context = session.open_context(None).await.unwrap();
+        let context = session.open_context(None, ContextAccess::ReadWrite).await.unwrap();
         session
             .execute(context, "CREATE TABLE t (id PRIMARY KEY, v); INSERT INTO t VALUES (1, 'a'), ('x', 2)", 100)
             .await
@@ -459,7 +505,7 @@ mod tests {
     #[tokio::test]
     async fn edits_rows_and_tables() {
         let (session, _file) = session().await;
-        let context = session.open_context(None).await.unwrap();
+        let context = session.open_context(None, ContextAccess::ReadWrite).await.unwrap();
         session.execute(context, SCHEMA, 100).await.unwrap();
 
         let page = select(&session, context, "SELECT * FROM users WHERE email = 'B@X.IO'").await;
@@ -536,7 +582,7 @@ mod tests {
         };
         let connector = UnsourcedConnector(LocalConnector::new(&options).unwrap());
         let session = SqliteSession::open(Arc::new(connector)).await.unwrap();
-        let context = session.open_context(None).await.unwrap();
+        let context = session.open_context(None, ContextAccess::ReadWrite).await.unwrap();
         session.execute(context, SCHEMA, 100).await.unwrap();
 
         let result = select(&session, context, "SELECT u.ID, email FROM users u WHERE id = 1").await;
@@ -591,7 +637,7 @@ mod app_function_tests {
              database has that function, so make the change there."
         );
 
-        let context = session.open_context(None).await.unwrap();
+        let context = session.open_context(None, ContextAccess::ReadWrite).await.unwrap();
         let outcomes = session.execute(context, "UPDATE t SET note = 'fine'; SELECT nope()", 10).await.unwrap();
         assert!(outcomes[0].error.is_none());
         let message = &outcomes[1].error.as_ref().unwrap().message;

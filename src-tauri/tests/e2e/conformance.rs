@@ -1,8 +1,9 @@
 use std::time::{Duration, Instant};
 
+use fran_db_lib::db::session::ContextAccess;
 use fran_db_lib::db::types::{
-    CellEdit, ColumnDefinition, ColumnDesign, ForeignKeyDesign, IndexColumnDesign, IndexDefinition, IndexDesign,
-    IndexKind, ObjectKind, RowChange, SqlTemplate, TableDesign, ValueCategory,
+    CellEdit, ColumnDefinition, ColumnDesign, FilterOp, FilterValue, ForeignKeyDesign, IndexColumnDesign, IndexDefinition,
+    IndexDesign, IndexKind, ObjectKind, ReadQuery, RowChange, RowFilter, RowOrder, SqlTemplate, TableDesign, ValueCategory,
 };
 
 use crate::support::{Case, Ctx, TestResult, cases, texts, values};
@@ -24,7 +25,96 @@ pub fn all() -> Vec<Case> {
         keeps_state_per_context,
         designer_alters_a_table,
         designer_creates_a_table,
+        read_only_contexts_refuse_writes,
+        runs_generated_reads,
+        lists_foreign_keys_both_ways,
     ]
+}
+
+async fn read_only_contexts_refuse_writes(ctx: &Ctx) -> TestResult {
+    let reader = ctx
+        .session
+        .open_context(Some(ctx.ns.clone()), ContextAccess::ReadOnly)
+        .await?;
+    let int_type = ctx.pick("INT", "integer");
+    let attempts = [
+        "DELETE FROM items".to_string(),
+        "UPDATE items SET name = 'x'".to_string(),
+        format!("CREATE TABLE made_by_reader (x {int_type})"),
+    ];
+
+    let mut refused = Vec::new();
+    for sql in &attempts {
+        let outcomes = ctx.session.execute(reader, sql, 10).await?;
+        refused.push(outcomes[0].error.is_some());
+    }
+    let read = ctx.session.execute(reader, "SELECT name FROM items", 10).await?;
+    ctx.session.close_context(reader).await;
+
+    assert_eq!(refused, [true, true, true], "a read-only context ran a write");
+    assert!(read[0].error.is_none(), "a read-only context refused a read");
+    let count = ctx.query("SELECT COUNT(*) AS n FROM items").await?;
+    assert_eq!(texts(&count, "n"), ["3"]);
+    Ok(())
+}
+
+async fn runs_generated_reads(ctx: &Ctx) -> TestResult {
+    let rows = ctx.session.read_sql(
+        &ctx.ns,
+        &ReadQuery::Rows {
+            table: "items".to_string(),
+            columns: vec!["name".to_string()],
+            filters: vec![RowFilter {
+                column: "price".to_string(),
+                op: FilterOp::Gt,
+                values: vec![FilterValue::Number("1".to_string())],
+            }],
+            order: vec![RowOrder {
+                column: "name".to_string(),
+                descending: true,
+            }],
+            limit: 10,
+            offset: 0,
+        },
+    )?;
+    assert_eq!(texts(&ctx.query(&rows).await?, "name"), ["cherry", "apple"]);
+
+    let count = ctx.session.read_sql(
+        &ctx.ns,
+        &ReadQuery::Count {
+            table: "items".to_string(),
+            filters: vec![RowFilter {
+                column: "note".to_string(),
+                op: FilterOp::IsNull,
+                values: Vec::new(),
+            }],
+        },
+    )?;
+    assert_eq!(texts(&ctx.query(&count).await?, "count"), ["1"]);
+
+    let explain = ctx.session.explain_sql("SELECT * FROM items WHERE id = 1");
+    assert!(!ctx.query(&explain).await?.rows.is_empty());
+    Ok(())
+}
+
+async fn lists_foreign_keys_both_ways(ctx: &Ctx) -> TestResult {
+    let int_type = ctx.pick("INT", "integer");
+    ctx.run(&format!(
+        "CREATE TABLE orders (id {int_type} PRIMARY KEY, item_id {int_type}, \
+         CONSTRAINT orders_item FOREIGN KEY (item_id) REFERENCES items (id))"
+    ))
+    .await?;
+
+    let keys = ctx.session.foreign_keys(&ctx.ns).await?;
+    let key = keys
+        .iter()
+        .find(|found| found.table == "orders")
+        .ok_or("the orders key wasn't listed")?;
+    assert_eq!(key.database, ctx.ns);
+    assert_eq!(key.key.columns, ["item_id"]);
+    assert_eq!(key.key.referenced_table, "items");
+    assert_eq!(key.key.referenced_columns, ["id"]);
+    Ok(())
 }
 
 fn column(name: &str, data_type: &str) -> ColumnDesign {
@@ -302,7 +392,10 @@ async fn cancels_a_running_query(ctx: &Ctx) -> TestResult {
 async fn keeps_state_per_context(ctx: &Ctx) -> TestResult {
     ctx.run("CREATE TEMPORARY TABLE scratch (x INT)").await?;
 
-    let other = ctx.session.open_context(Some(ctx.ns.clone())).await?;
+    let other = ctx
+        .session
+        .open_context(Some(ctx.ns.clone()), ContextAccess::ReadWrite)
+        .await?;
     let outcomes = ctx.session.execute(other, "SELECT * FROM scratch", 1000).await;
     ctx.session.close_context(other).await;
 

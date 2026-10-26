@@ -10,6 +10,7 @@ use std::{
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 
+use super::classify;
 use super::client::{CancelKey, PgConnection, PgError, RawResult};
 use super::connect::Connector;
 use super::design::{self, Server};
@@ -20,10 +21,12 @@ use super::splitter;
 use super::sqlgen::{self, Dialect};
 use super::types::TypeCache;
 use crate::connections::SecretBag;
-use crate::db::session::{ContextId, DatabaseSession, OutcomeSink};
+use crate::db::classify::ClassifiedStatement;
+use crate::db::read_query;
+use crate::db::session::{ContextAccess, ContextId, DatabaseSession, OutcomeSink};
 use crate::db::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
-    ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
+    ObjectStructure, ReadQuery, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign, TableForeignKey,
 };
 use crate::error::{AppError, AppResult};
 use crate::ssh::{SshTunnel, known_hosts::KnownHosts};
@@ -37,6 +40,7 @@ struct LiveConn {
 
 struct QueryContext {
     schema: Option<String>,
+    read_only: bool,
     slot: Mutex<Option<LiveConn>>,
     cancel_key: StdMutex<Option<CancelKey>>,
 }
@@ -176,6 +180,15 @@ impl PostgresSession {
     }
 
     async fn ensure_live<'a>(&self, slot: &'a mut Option<LiveConn>, schema: Option<&str>) -> AppResult<&'a mut LiveConn> {
+        self.ensure_live_as(slot, schema, false).await
+    }
+
+    async fn ensure_live_as<'a>(
+        &self,
+        slot: &'a mut Option<LiveConn>,
+        schema: Option<&str>,
+        read_only: bool,
+    ) -> AppResult<&'a mut LiveConn> {
         let needs_new = match slot {
             Some(live) => live.last_used.elapsed() > PING_AFTER_IDLE && live.conn.ping().await.is_err(),
             None => true,
@@ -184,7 +197,7 @@ impl PostgresSession {
         if needs_new {
             let target = self.target();
             *slot = Some(LiveConn {
-                conn: target.connector.connect(schema).await?,
+                conn: target.connector.connect_as(schema, read_only).await?,
                 last_used: Instant::now(),
             });
         }
@@ -379,6 +392,25 @@ impl DatabaseSession for PostgresSession {
         settle(&mut slot, result)
     }
 
+    async fn foreign_keys(&self, database: &str) -> AppResult<Vec<TableForeignKey>> {
+        let mut slot = self.meta.lock().await;
+        let live = self.ensure_live(&mut slot, None).await?;
+        let result = metadata::schema_foreign_keys(&mut live.conn, database).await;
+        settle(&mut slot, result)
+    }
+
+    fn classify(&self, sql: &str) -> Vec<ClassifiedStatement> {
+        classify::classify(sql, self.dialect())
+    }
+
+    fn read_sql(&self, database: &str, query: &ReadQuery) -> AppResult<String> {
+        read_query::read_sql(&self.dialect(), database, query)
+    }
+
+    fn explain_sql(&self, sql: &str) -> String {
+        format!("EXPLAIN {sql}")
+    }
+
     fn row_changes_sql(
         &self,
         database: &str,
@@ -428,16 +460,19 @@ impl DatabaseSession for PostgresSession {
         }
     }
 
-    async fn open_context(&self, database: Option<String>) -> AppResult<ContextId> {
+    async fn open_context(&self, database: Option<String>, access: ContextAccess) -> AppResult<ContextId> {
         let context = Arc::new(QueryContext {
             schema: database,
+            read_only: access == ContextAccess::ReadOnly,
             slot: Mutex::new(None),
             cancel_key: StdMutex::new(None),
         });
 
         {
             let mut slot = context.slot.lock().await;
-            let live = self.ensure_live(&mut slot, context.schema.as_deref()).await?;
+            let live = self
+                .ensure_live_as(&mut slot, context.schema.as_deref(), context.read_only)
+                .await?;
             context.remember_key(live.conn.cancel_key());
         }
 
@@ -471,7 +506,9 @@ impl DatabaseSession for PostgresSession {
         let statements = splitter::split(sql);
 
         let mut slot = context.slot.lock().await;
-        let live = self.ensure_live(&mut slot, context.schema.as_deref()).await?;
+        let live = self
+            .ensure_live_as(&mut slot, context.schema.as_deref(), context.read_only)
+            .await?;
         context.remember_key(live.conn.cancel_key());
 
         // An empty query does no server work, so its time is the network round trip on its own.

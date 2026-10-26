@@ -1,3 +1,4 @@
+use crate::db::read_query::SqlWriter;
 use crate::db::types::{ColumnMeta, RowChange, ValueCategory};
 use crate::error::{AppError, AppResult};
 
@@ -12,6 +13,26 @@ pub fn qualified(schema: &str, name: &str) -> String {
 /// SQLite strings never take backslash escapes.
 pub fn string_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
+}
+
+pub struct Quoting;
+
+impl SqlWriter for Quoting {
+    fn identifier(&self, name: &str) -> String {
+        quote_identifier(name)
+    }
+
+    fn table(&self, schema: &str, table: &str) -> String {
+        qualified(schema, table)
+    }
+
+    fn string(&self, value: &str) -> String {
+        string_literal(value)
+    }
+
+    fn boolean(&self, value: bool) -> String {
+        if value { "1" } else { "0" }.to_string()
+    }
 }
 
 pub fn value_literal(value: Option<&str>, category: ValueCategory) -> String {

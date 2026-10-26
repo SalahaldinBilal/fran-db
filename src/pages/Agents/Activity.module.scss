@@ -1,0 +1,486 @@
+.Activity {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.Rail {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 292px;
+  border-right: 1px solid var(--border);
+  background-color: var(--surface);
+  box-shadow: 4px 0 16px rgb(0 0 0 / 22%);
+}
+
+.RailBody {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 6px 12px;
+  overflow-y: auto;
+}
+
+.RailLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  margin-top: 10px;
+  padding: 0 8px;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.Pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background-color: rgb(255 255 255 / 6%);
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.RailEmpty {
+  padding: 6px 8px;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+}
+
+.SessionRow {
+  all: unset;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--accent-line);
+    outline-offset: -1px;
+  }
+
+  &.Selected {
+    background-color: var(--surface-active);
+    box-shadow: var(--highlight);
+  }
+
+  .RowClose {
+    opacity: 0;
+  }
+
+  &:hover .RowClose,
+  &.Selected .RowClose,
+  .RowClose:focus-visible {
+    opacity: 1;
+  }
+}
+
+.SessionText {
+  flex: 1;
+  min-width: 0;
+}
+
+.SessionName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: var(--font-md);
+  font-weight: 550;
+
+  .Closed & {
+    color: var(--text-muted);
+  }
+}
+
+.SessionAgent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.LiveDot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--success);
+}
+
+.SessionSub {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  b {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+}
+
+.Feed {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.Approval {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 20px 0;
+  padding: 10px 10px 10px 14px;
+  border: 1px solid rgb(from var(--warning) r g b / 32%);
+  border-radius: var(--radius-lg);
+  background-color: rgb(from var(--warning) r g b / 8%);
+
+  > svg {
+    flex-shrink: 0;
+    color: var(--warning);
+  }
+}
+
+.ApprovalText {
+  flex: 1;
+  min-width: 0;
+}
+
+.ApprovalTitle {
+  color: var(--text-strong);
+  font-weight: 550;
+}
+
+.ApprovalSub {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.FeedHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 12px;
+
+  h2 {
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-strong);
+    font-size: var(--font-lg);
+    font-weight: 600;
+    letter-spacing: -.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.FeedTitles {
+  flex: 1;
+  min-width: 0;
+}
+
+.Meta {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px 12px;
+}
+
+.DayNav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.Day {
+  min-width: 190px;
+  color: var(--text);
+  font-weight: 550;
+  text-align: center;
+}
+
+.Spacer {
+  flex: 1;
+}
+
+.Search {
+  width: 220px;
+}
+
+.SearchIcon {
+  flex-shrink: 0;
+  margin-left: 10px;
+  color: var(--text-faint);
+}
+
+.FeedList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 20px 24px;
+  overflow-y: auto;
+}
+
+.FeedEmpty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding-bottom: 40px;
+}
+
+.Loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+  color: var(--text-muted);
+}
+
+.Calls {
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface);
+}
+
+.Call + .Call {
+  border-top: 1px solid var(--border);
+}
+
+.CallRow {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  color: var(--text);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  > svg {
+    flex-shrink: 0;
+    color: var(--text-faint);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--surface-hover);
+  }
+
+  .Open & {
+    background-color: var(--surface-raised);
+  }
+}
+
+.Time {
+  flex-shrink: 0;
+  width: 78px;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.Tool {
+  flex-shrink: 0;
+  width: 128px;
+  overflow: hidden;
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.What {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  code {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+  }
+}
+
+.Agent {
+  flex-shrink: 0;
+  max-width: 120px;
+  overflow: hidden;
+  color: var(--text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Duration {
+  flex-shrink: 0;
+  width: 56px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.Outcome {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 78px;
+  height: 20px;
+  border-radius: 999px;
+  background-color: rgb(from var(--success) r g b / 12%);
+  color: var(--success);
+  font-size: var(--font-xs);
+  font-weight: 600;
+
+  &[data-tone="fail"] {
+    background-color: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  &[data-tone="warn"],
+  &[data-tone="wait"] {
+    background-color: rgb(from var(--warning) r g b / 12%);
+    color: var(--warning);
+  }
+
+  &[data-tone="wait"] {
+    animation: waiting 1.6s var(--ease) infinite;
+  }
+}
+
+@keyframes waiting {
+  50% {
+    background-color: rgb(from var(--warning) r g b / 22%);
+  }
+}
+
+.Detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px 14px 36px;
+  border-top: 1px solid var(--border);
+  background-color: var(--surface-raised);
+}
+
+.Wide {
+  grid-column: 1 / -1;
+}
+
+.Block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.Label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.Hint {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+// Grows with the text, wrapped lines included, then scrolls.
+.Code {
+  min-width: 0;
+
+  :global(.cm-editor) {
+    max-height: 240px;
+  }
+
+  :global(.cm-scroller) {
+    overflow: auto;
+  }
+
+  &.Tall :global(.cm-editor) {
+    max-height: 360px;
+  }
+}
+
+.Grid {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.Message,
+.ApprovalLine {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--text);
+  font-size: var(--font-sm);
+  word-break: break-word;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--text-muted);
+  }
+}
+
+.Message.Failed svg {
+  color: var(--danger);
+}
+
+.ApprovalLine svg {
+  color: var(--warning);
+}

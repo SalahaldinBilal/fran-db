@@ -1,3 +1,4 @@
+use crate::db::read_query::SqlWriter;
 use crate::db::types::{ColumnMeta, RowChange, ValueCategory};
 use crate::error::{AppError, AppResult};
 
@@ -49,6 +50,24 @@ impl Dialect {
             }
             _ => self.string_literal(value),
         }
+    }
+}
+
+impl SqlWriter for Dialect {
+    fn identifier(&self, name: &str) -> String {
+        quote_identifier(name)
+    }
+
+    fn table(&self, schema: &str, table: &str) -> String {
+        qualified(schema, table)
+    }
+
+    fn string(&self, value: &str) -> String {
+        self.string_literal(value)
+    }
+
+    fn boolean(&self, value: bool) -> String {
+        if value { "TRUE" } else { "FALSE" }.to_string()
     }
 }
 

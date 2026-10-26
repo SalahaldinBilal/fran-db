@@ -10,7 +10,7 @@ use tauri::{State, ipc::Channel};
 
 use super::{
     DatabaseKind,
-    session::ContextId,
+    session::{ContextAccess, ContextId},
     sessions::{OpenSession, SessionInfo, SessionManager},
     split_statements,
     types::{
@@ -176,7 +176,11 @@ pub async fn open_query_context(
     session_id: String,
     database: Option<String>,
 ) -> AppResult<ContextId> {
-    sessions.get(&session_id)?.session.open_context(database).await
+    sessions
+        .get(&session_id)?
+        .session
+        .open_context(database, ContextAccess::ReadWrite)
+        .await
 }
 
 #[tauri::command]

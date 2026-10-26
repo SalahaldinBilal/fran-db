@@ -14,6 +14,7 @@ use mysql_async::{
 };
 use tokio::sync::Mutex;
 
+use super::classify;
 use super::design;
 use super::metadata;
 use super::options::{MysqlConnectMethod, MysqlOptions, PASSWORD_SLOT, SslMode};
@@ -21,10 +22,12 @@ use super::results::{milliseconds, run_statement};
 use super::splitter;
 use super::sqlgen::{self, Dialect};
 use crate::connections::SecretBag;
-use crate::db::session::{ContextId, DatabaseSession, OutcomeSink};
+use crate::db::classify::ClassifiedStatement;
+use crate::db::read_query;
+use crate::db::session::{ContextAccess, ContextId, DatabaseSession, OutcomeSink};
 use crate::db::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind, ObjectStructure,
-    RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
+    ReadQuery, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign, TableForeignKey,
 };
 use crate::error::{AppError, AppResult, ErrorDetail};
 use crate::forward::LocalForward;
@@ -54,6 +57,7 @@ struct LiveConn {
 
 struct QueryContext {
     database: Option<String>,
+    read_only: bool,
     slot: Mutex<Option<LiveConn>>,
     connection_id: AtomicU32,
 }
@@ -311,14 +315,30 @@ impl MysqlSession {
         slot: &'a mut Option<LiveConn>,
         database: Option<&str>,
     ) -> AppResult<&'a mut LiveConn> {
+        self.ensure_live_as(slot, database, false).await
+    }
+
+    /// A read-only connection is set read-only before anything runs on it, on every reconnect too.
+    async fn ensure_live_as<'a>(
+        &self,
+        slot: &'a mut Option<LiveConn>,
+        database: Option<&str>,
+        read_only: bool,
+    ) -> AppResult<&'a mut LiveConn> {
         let needs_new = match slot {
             Some(live) => live.last_used.elapsed() > PING_AFTER_IDLE && live.conn.ping().await.is_err(),
             None => true,
         };
 
         if needs_new {
+            *slot = None;
+            let mut conn = open_conn(self.opts_for(database), self.connect_timeout).await?;
+            if read_only && let Err(error) = conn.query_drop("SET SESSION TRANSACTION READ ONLY").await {
+                let _ = conn.disconnect().await;
+                return Err(db_error(error));
+            }
             *slot = Some(LiveConn {
-                conn: open_conn(self.opts_for(database), self.connect_timeout).await?,
+                conn,
                 last_used: Instant::now(),
             });
         }
@@ -520,16 +540,38 @@ impl DatabaseSession for MysqlSession {
         settle(&mut slot, result)
     }
 
-    async fn open_context(&self, database: Option<String>) -> AppResult<ContextId> {
+    async fn foreign_keys(&self, database: &str) -> AppResult<Vec<TableForeignKey>> {
+        let mut slot = self.meta.lock().await;
+        let live = self.ensure_live(&mut slot, None).await?;
+        let result = metadata::database_foreign_keys(&mut live.conn, database).await;
+        settle(&mut slot, result)
+    }
+
+    fn classify(&self, sql: &str) -> Vec<ClassifiedStatement> {
+        classify::classify(sql, self.dialect)
+    }
+
+    fn read_sql(&self, database: &str, query: &ReadQuery) -> AppResult<String> {
+        read_query::read_sql(&self.dialect, database, query)
+    }
+
+    fn explain_sql(&self, sql: &str) -> String {
+        format!("EXPLAIN {sql}")
+    }
+
+    async fn open_context(&self, database: Option<String>, access: ContextAccess) -> AppResult<ContextId> {
         let context = Arc::new(QueryContext {
             database,
+            read_only: access == ContextAccess::ReadOnly,
             slot: Mutex::new(None),
             connection_id: AtomicU32::new(0),
         });
 
         {
             let mut slot = context.slot.lock().await;
-            let live = self.ensure_live(&mut slot, context.database.as_deref()).await?;
+            let live = self
+                .ensure_live_as(&mut slot, context.database.as_deref(), context.read_only)
+                .await?;
             context.connection_id.store(live.conn.id(), Ordering::SeqCst);
         }
 
@@ -563,7 +605,9 @@ impl DatabaseSession for MysqlSession {
         let statements = splitter::split(sql);
 
         let mut slot = context.slot.lock().await;
-        let live = self.ensure_live(&mut slot, context.database.as_deref()).await?;
+        let live = self
+            .ensure_live_as(&mut slot, context.database.as_deref(), context.read_only)
+            .await?;
         context.connection_id.store(live.conn.id(), Ordering::SeqCst);
 
         // A ping does no server work, so its time is the network round trip on its own.

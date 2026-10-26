@@ -1,6 +1,6 @@
 import styles from "./App.module.scss";
 import { For, Show, createMemo, createSignal, onMount } from "solid-js";
-import { Database, House, Settings, X } from "lucide-solid";
+import { Bot, Database, House, Settings, X } from "lucide-solid";
 import TabStrip, { TabStripItem } from "./components/TabStrip/TabStrip";
 import Button from "./components/Button/Button";
 import SettingsModal from "./components/SettingsModal/SettingsModal";
@@ -9,9 +9,12 @@ import ContextMenuHost from "./components/ContextMenu/ContextMenuHost";
 import TooltipHost from "./components/Tooltip/TooltipHost";
 import Prompts from "./components/Prompts/Prompts";
 import PortForwardModal from "./components/PortForwardModal/PortForwardModal";
+import AgentApprovalModal from "./components/AgentApprovalModal/AgentApprovalModal";
+import useAgentState from "./states/agentState";
 import Home from "./pages/Home/Home";
 import Workspace from "./pages/Workspace/Workspace";
-import useWorkspaceState, { HOME_TAB_ID } from "./states/workspaceState";
+import Agents from "./pages/Agents/Agents";
+import useWorkspaceState, { AGENTS_TAB_ID, HOME_TAB_ID } from "./states/workspaceState";
 import useContextMenuState from "./states/contextMenuState";
 import useConnectionsState from "./states/connectionsState";
 import useVaultState from "./states/vaultState";
@@ -24,17 +27,25 @@ import WindowControls from "./components/WindowControls/WindowControls";
 import { installGlobalContextMenu } from "./helpers/globalContextMenu";
 import { IS_MAC } from "./helpers/platform";
 import { safeInvoke } from "./helpers/safeInvoke";
-import { keepOrder } from "./helpers";
+import { keepOrder, plural } from "./helpers";
 
 function App() {
   const workspace = useWorkspaceState;
+  const agent = useAgentState;
   const { openContextMenu } = useContextMenuState;
   const [settingsOpen, setSettingsOpen] = createSignal(false);
+
+  const agentsOpen = createMemo(() => workspace.store.globalTabs.some(tab => tab.kind === "agents"));
+  const pendingChanges = createMemo(() => agent.approvals.length);
+  const agentsTooltip = createMemo(() => (pendingChanges() > 0 ? `Agents, ${plural(pendingChanges(), "change")} waiting` : "Agents"));
 
   const tabItems = createMemo<TabStripItem[]>(() =>
     workspace.store.globalTabs.map(tab => {
       if (tab.kind === "home") {
         return { id: tab.id, label: "Connections", icon: House };
+      }
+      if (tab.kind === "agents") {
+        return { id: tab.id, label: "Agents", icon: Bot, closable: true, movable: true };
       }
 
       const session = workspace.store.sessions[tab.sessionId];
@@ -60,6 +71,11 @@ function App() {
 
   installGlobalContextMenu();
 
+  function openAgents() {
+    agent.setView("activity");
+    workspace.openAgents();
+  }
+
   async function checkForUpdates() {
     const found = await useUpdaterState.checkForUpdate();
     if (!found) return;
@@ -75,6 +91,7 @@ function App() {
     useConnectionsState.load();
     useSavedQueriesState.load();
     useVaultState.refresh();
+    useAgentState.load();
   });
 
   return (
@@ -84,12 +101,12 @@ function App() {
         items={tabItems()}
         activeId={workspace.store.activeGlobalTabId}
         onSelect={workspace.activateGlobalTab}
-        onClose={workspace.closeSession}
+        onClose={workspace.closeGlobalTab}
         onReorder={workspace.moveGlobalTab}
         onContextMenu={(event, id) => {
           if (id === HOME_TAB_ID) return;
           openContextMenu(event, [
-            { label: "Disconnect", icon: X, onSelect: () => workspace.closeSession(id) },
+            { label: id === AGENTS_TAB_ID ? "Close" : "Disconnect", icon: X, onSelect: () => workspace.closeGlobalTab(id) },
           ]);
         }}
         dragRegion
@@ -98,6 +115,22 @@ function App() {
         trailing={
           <>
             <div class={styles.Actions} classList={{ [styles.Locked]: useModalState.anyOpen() }}>
+              <Button
+                icon
+                size="sm"
+                class={styles.AgentsButton}
+                active={workspace.store.activeGlobalTabId === AGENTS_TAB_ID}
+                tooltip={agentsTooltip()}
+                onClick={openAgents}
+              >
+                <Bot size={16} />
+                <Show when={agent.status().running}>
+                  <span class={styles.Live} />
+                </Show>
+                <Show when={pendingChanges() > 0}>
+                  <span class={styles.Pending}>{pendingChanges()}</span>
+                </Show>
+              </Button>
               <Button icon size="sm" tooltip="Settings" onClick={() => setSettingsOpen(true)}>
                 <Settings size={16} />
               </Button>
@@ -119,8 +152,21 @@ function App() {
             </div>
           )}
         </For>
+        <Show when={agentsOpen()}>
+          <div class={styles.Page} classList={{ [styles.Hidden]: workspace.store.activeGlobalTabId !== AGENTS_TAB_ID }}>
+            <Agents />
+          </div>
+        </Show>
       </main>
-      <SettingsModal show={settingsOpen()} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal
+        show={settingsOpen()}
+        onClose={() => setSettingsOpen(false)}
+        onOpenAgents={() => {
+          setSettingsOpen(false);
+          openAgents();
+        }}
+      />
+      <AgentApprovalModal />
       <Prompts />
       <PortForwardModal />
       <ContextMenuHost />

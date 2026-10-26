@@ -12,7 +12,7 @@ Fran DB is a desktop SQL client built with Tauri 2 (Rust backend) and SolidJS + 
 - `npm run dev` runs the frontend alone (Tauri APIs unavailable)
 - `npm run tauri build` makes a release bundle
 - `npm run tauri icon app-icon.svg` regenerates `src-tauri/icons/` from the SVG
-- `cargo check` / `cargo test` inside `src-tauri/` compile or test the Rust side (the statement splitters, the SQL generators and the Postgres type mapping have unit tests, and `db/sqlite/session.rs` runs the SQLite driver end to end against a temp file)
+- `cargo check` / `cargo test` inside `src-tauri/` compile or test the Rust side (the statement splitters and classifiers, the SQL generators and the Postgres type mapping have unit tests, `db/sqlite/session.rs` runs the SQLite driver end to end against a temp file, and `agent/tests.rs` drives the MCP server over HTTP with an MCP client)
 - `cargo test --features e2e --test e2e` inside `src-tauri/` runs the driver end-to-end tests (`tests/e2e/`) against real servers in Docker, started and removed by the test run. A filter like `-- postgres_17` limits the run. `DOCKER_HOST=tcp://127.0.0.1:2375` points it at dockerd inside WSL, `FRAN_E2E_<SERVER_ID>=host:port:user:password` at an existing server instead of a container
 
 No frontend tests or linters are configured.
@@ -71,6 +71,18 @@ No frontend tests or linters are configured.
 - The table designer edits a `TableDesign`. Every column, index and foreign key carries `originalName` so `alter_sql` can tell renames from drops and adds. FK drops and adds go in their own ALTER statements around the main one. `design.rs` has tests for the diff, extend them when changing it.
 - "Copy SQL" templates come from `get_object_sql` / `get_database_sql`.
 
+### Agents (MCP server)
+
+- `src-tauri/src/agent/` serves MCP over streamable HTTP (`rmcp` behind `axum`) at `http://127.0.0.1:<port>/mcp`, off until turned on in the Agents tab or Settings > Agents. It binds to 127.0.0.1, accepts only loopback `Host` headers and refuses any request with an `Origin` header. No token.
+- `AgentHost` (managed as `Arc<AgentHost>`) owns the server, agent sessions, pending approvals and history. It reaches the window through the `Notifier` trait, so tests run it without Tauri. Server settings and the global switches (`allowRawSql`, `allowChanges`, history) live in `agent.json`, owned by Rust.
+- Access is per connection: `ConnectionProfile.agentAccess` with mode `off` (default), `readOnly` or `ask`, and an optional database list. Where a session is bound to one database (`DatabaseSession::catalog`, Postgres and D1) the list names those databases, elsewhere the ones tools take. Every call re-reads the profile, and saving or deleting a connection closes its agent sessions.
+- Agents call `open_session` first and pass its id to every other tool. Agent sessions are their own `DatabaseSession`s, kept apart from the UI's `SessionManager`, with one read-only context per database. They close on `close_session`, from the Agents tab, after 10 minutes idle, when the server is turned off, and on exit.
+- Reads run in read-only contexts (`open_context(.., ContextAccess::ReadOnly)`): MySQL sets `SET SESSION TRANSACTION READ ONLY` on every (re)connect, Postgres starts the connection with `default_transaction_read_only=on`, SQLite opens the file read only, and D1 has no such mode. Raw SQL is checked first by `DatabaseSession::classify`, built on each driver's splitter (`classify.rs` per driver, shared tokenizer in `db/classify.rs`). Structured reads are written by `DatabaseSession::read_sql` (`db/read_query.rs` plus each driver's `SqlWriter`), so agents rarely need raw SQL.
+- Changes (`ask` mode) build their SQL with the same driver code as the UI (`row_changes_sql`, `table_design_sql`, `object_sql`), then wait in `Approvals` until the user answers in `AgentApprovalModal`. The request carries the call's arguments, and row tools add a `RowPreview` (current values read by key next to the new ones). A new request opens the review once. Closing it leaves the request pending in the Agents tab. No answer in 5 minutes rejects. Approved SQL runs with `execute_batch`.
+- The UI is the Agents global tab (`pages/Agents/`), opened from the title bar button: Activity (open sessions, sessions closed that day from history, pending approvals and the day's calls), Access (every connection's `agentAccess`, saved with `save_connection`) and Server (`AgentConfig`). Settings > Agents only has the on switch.
+- Every tool call goes through `AgentServer::call_tool`, which hides and refuses tools switched off globally (`tool_enabled`) and writes a `HistoryEntry` with the exact reply. History is one file per UTC day in `agent_history/`, each record encrypted with XChaCha20-Poly1305 under a key stored in the vault (`agent:historyKey`). A vault reset deletes it. With history on and the vault unavailable, the server doesn't start.
+- Events to the frontend: `agent-status-changed`, `agent-sessions-changed`, `agent-approvals-changed`, `agent-history-added`, read by `states/agentState.ts`.
+
 ### Editor
 
 - `SqlEditor` takes a `SchemaCatalog` (`helpers/catalog.ts`) for the schema checker (`schemaLinter.ts`) and a lang-sql namespace for completion. Both come from the session's cached `objects` and `columns`, loaded per database by `ensureCatalog` and refreshed by `refreshCatalog` after DDL.
@@ -78,7 +90,7 @@ No frontend tests or linters are configured.
 
 ### Files
 
-All in the Tauri app data dir: `connections.json` (profiles, no secrets), `known_hosts.json`, `saved_queries.json`, `tab_state.json`, `settings.json`, `secrets.vault`.
+All in the Tauri app data dir: `connections.json` (profiles, no secrets), `known_hosts.json`, `saved_queries.json`, `tab_state.json`, `settings.json`, `secrets.vault`, `agent.json`, `agent_history/`.
 
 App settings belong to the frontend (`settingsState.ts` owns the shape and defaults, Rust only stores the JSON). Unknown or missing keys fall back to the defaults in `fromStored`. The settings window opens from the gear at the right of the top tab bar.
 

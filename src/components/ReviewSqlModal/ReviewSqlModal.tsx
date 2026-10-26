@@ -18,12 +18,33 @@ export type ReviewSqlModalProps = {
   description: string,
   dialect: SQLDialect,
   safety: ApplySafety,
+  applyLabel?: string,
+  cancelLabel?: string,
   // Resolves to an error message to show, or null when everything ran.
   onApply: () => Promise<string | null>,
   onClose: () => void,
 };
 
-type SafetyNote = { safe: boolean, text: string };
+export type SafetyNote = { safe: boolean, text: string };
+
+export function safetyNote(safety: ApplySafety, count: number): SafetyNote {
+  if (safety.kind === "transaction") {
+    return { safe: true, text: "Runs in a single transaction. If any statement fails, everything is rolled back and nothing changes." };
+  }
+  if (safety.atomic && count <= 1) {
+    return { safe: true, text: "Table changes can't run in a transaction, but this is one statement and this server applies it completely or not at all." };
+  }
+  if (safety.atomic) {
+    return {
+      safe: false,
+      text: `Table changes can't run in a transaction. Each of these ${plural(count, "statement")} is applied completely or not at all, but if one fails, the ones before it stay applied.`,
+    };
+  }
+  return {
+    safe: false,
+    text: "Table changes can't run in a transaction, and this server version can leave a failed statement half applied. Statements run in order and stop at the first error.",
+  };
+}
 
 function ReviewSqlModal(props: ReviewSqlModalProps) {
   const [applying, setApplying] = createSignal(false);
@@ -32,26 +53,7 @@ function ReviewSqlModal(props: ReviewSqlModalProps) {
 
   createComputed(on(() => props.statements, () => setError(null)));
 
-  const note = createMemo<SafetyNote>(() => {
-    const safety = props.safety;
-    const count = props.statements?.length ?? 0;
-    if (safety.kind === "transaction") {
-      return { safe: true, text: "Runs in a single transaction. If any statement fails, everything is rolled back and nothing changes." };
-    }
-    if (safety.atomic && count <= 1) {
-      return { safe: true, text: "Table changes can't run in a transaction, but this is one statement and this server applies it completely or not at all." };
-    }
-    if (safety.atomic) {
-      return {
-        safe: false,
-        text: `Table changes can't run in a transaction. Each of these ${plural(count, "statement")} is applied completely or not at all, but if one fails, the ones before it stay applied.`,
-      };
-    }
-    return {
-      safe: false,
-      text: "Table changes can't run in a transaction, and this server version can leave a failed statement half applied. Statements run in order and stop at the first error.",
-    };
-  });
+  const note = createMemo(() => safetyNote(props.safety, props.statements?.length ?? 0));
 
   async function apply() {
     setApplying(true);
@@ -76,10 +78,10 @@ function ReviewSqlModal(props: ReviewSqlModalProps) {
       width={760}
       footer={
         <>
-          <Button variant="subtle" onClick={props.onClose} disabled={applying()}>Cancel</Button>
+          <Button variant="subtle" onClick={props.onClose} disabled={applying()}>{props.cancelLabel ?? "Cancel"}</Button>
           <Button variant="primary" onClick={apply} disabled={applying()}>
             <Show when={applying()}><Spinner size={12} /></Show>
-            Apply
+            {props.applyLabel ?? "Apply"}
           </Button>
         </>
       }

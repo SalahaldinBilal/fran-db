@@ -1,0 +1,423 @@
+.Agents {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background-color: var(--surface);
+}
+
+.View {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background-color: var(--bg);
+
+  &.Hidden {
+    display: none;
+  }
+}
+
+.Status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 0 8px;
+}
+
+.StatusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: var(--bg-sunken);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  white-space: nowrap;
+
+  &[data-state="running"] {
+    padding-right: 3px;
+  }
+
+  code {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+  }
+
+  &[data-state="error"] {
+    color: var(--danger);
+  }
+}
+
+.Led {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--text-faint);
+
+  [data-state="running"] > & {
+    background-color: var(--success);
+    box-shadow: 0 0 0 3px rgb(from var(--success) r g b / 16%);
+  }
+
+  [data-state="error"] > & {
+    background-color: var(--danger);
+    box-shadow: 0 0 0 3px var(--danger-soft);
+  }
+}
+
+.ChipButton {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 18px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
+}
+
+.AgentMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background-color: var(--mark, var(--surface-active));
+  box-shadow: var(--highlight), inset 0 0 0 1px rgb(255 255 255 / 8%);
+  color: #fff;
+  font-size: var(--font-sm);
+  font-weight: 650;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 30%);
+  transition: filter var(--duration) var(--ease);
+
+  &.All {
+    background-color: var(--surface-raised);
+    color: var(--text-muted);
+    text-shadow: none;
+  }
+
+  &.Dim {
+    filter: saturate(.2) brightness(.7);
+  }
+}
+
+.Scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.Wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 22px 28px 40px;
+
+  &.Narrow {
+    max-width: 680px;
+  }
+}
+
+.PageHead {
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--font-xl);
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+
+  p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+  }
+}
+
+.Notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 9px 12px;
+  border: 1px solid rgb(from var(--accent) r g b / 28%);
+  border-radius: var(--radius-lg);
+  background-color: rgb(from var(--accent) r g b / 7%);
+  color: var(--text);
+  font-size: var(--font-sm);
+
+  svg {
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+}
+
+.Table {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface);
+}
+
+.TableRow {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.2fr) 100px auto minmax(200px, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 8px 16px;
+
+  & + & {
+    border-top: 1px solid var(--border);
+  }
+}
+
+.TableHead {
+  min-height: 34px;
+  padding-block: 0;
+  background-color: var(--bg-sunken);
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.Connection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.Badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background-color: var(--badge, var(--surface-active));
+  box-shadow: var(--highlight), inset 0 0 0 1px rgb(255 255 255 / 8%);
+  color: #fff;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 30%);
+}
+
+.ConnectionText {
+  min-width: 0;
+}
+
+.ConnectionName {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ConnectionHost {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Kind {
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+}
+
+.Chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.Chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 3px 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-active);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+
+  button {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--surface-hover);
+      color: var(--text-strong);
+    }
+  }
+}
+
+.AddChip {
+  padding: 0 9px 0 6px;
+  border-style: dashed;
+  background-color: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    color: var(--text-strong);
+  }
+}
+
+.ChipInput {
+  box-sizing: border-box;
+  width: 140px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background-color: var(--control);
+  box-shadow: var(--focus-ring);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  outline: none;
+
+  &::placeholder {
+    color: var(--text-faint);
+    font-family: var(--font-sans);
+  }
+}
+
+.AllNote {
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+}
+
+.Off {
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+}
+
+.TableFoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-sunken);
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.Section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+
+  h3 {
+    margin: 0;
+    color: var(--text-faint);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+}
+
+.Group {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-sunken);
+}
+
+.Setting {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 16px;
+
+  & + & {
+    border-top: 1px solid var(--border);
+  }
+}
+
+.SettingText {
+  flex: 1;
+  min-width: 0;
+}
+
+.SettingName {
+  color: var(--text-strong);
+  font-size: var(--font-md);
+  font-weight: 550;
+}
+
+.SettingHint {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+
+  code {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--font-xs);
+  }
+}
+
+.HintError {
+  color: var(--danger);
+}
+
+.NumberInput {
+  flex-shrink: 0;
+  width: 104px;
+}
+
+.Suffix {
+  padding-right: 8px;
+  color: var(--text-faint);
+  font-size: var(--font-sm);
+}

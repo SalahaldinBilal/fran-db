@@ -9,10 +9,12 @@ import Button from "../Button/Button";
 import SegmentedControl from "../SegmentedControl/SegmentedControl";
 import Toggle from "../Switch/Switch";
 import ReleaseNotes from "../ReleaseNotes/ReleaseNotes";
+import AgentSettings from "./AgentSettings";
 
 export type SettingsModalProps = {
   show: boolean,
   onClose: () => void,
+  onOpenAgents: () => void,
 };
 
 const EDIT_MODE_HINTS: Record<CellEditMode, string> = {
@@ -158,6 +160,8 @@ function SettingsModal(props: SettingsModalProps) {
             />
           </div>
         </section>
+
+        <AgentSettings onOpenAgents={props.onOpenAgents} />
       </div>
     </Modal>
   );

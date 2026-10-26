@@ -82,6 +82,11 @@ pub trait SqliteConnector: Send + Sync {
 
     async fn connect(&self) -> AppResult<Arc<dyn SqliteConnection>>;
 
+    /// Backends without a read-only mode, like D1, return a normal connection and rely on the statement classifier.
+    async fn connect_read_only(&self) -> AppResult<Arc<dyn SqliteConnection>> {
+        self.connect().await
+    }
+
     fn is_internal_table(&self, name: &str) -> bool {
         name.starts_with("sqlite_")
     }

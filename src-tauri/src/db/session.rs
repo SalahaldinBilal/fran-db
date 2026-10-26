@@ -2,13 +2,21 @@ use std::sync::{Mutex, PoisonError};
 
 use async_trait::async_trait;
 
+use super::classify::ClassifiedStatement;
 use super::types::{
     BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, DatabaseInfo, DatabaseSize, DesignOptions, ObjectInfo, ObjectKind,
-    ObjectStructure, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign,
+    ObjectStructure, ReadQuery, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign, TableForeignKey,
 };
 use crate::error::{AppError, AppResult};
 
 pub type ContextId = u32;
+
+/// A read-only context is held read-only by the server where the server can do that.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ContextAccess {
+    ReadWrite,
+    ReadOnly,
+}
 
 pub type OutcomeSink<'a> = &'a (dyn Fn(StatementOutcome) + Send + Sync);
 
@@ -67,6 +75,17 @@ pub trait DatabaseSession: Send + Sync {
     /// The allowed values of an ENUM or SET style column, None for any other column.
     async fn column_choices(&self, database: &str, table: &str, column: &str) -> AppResult<Option<ColumnChoices>>;
 
+    /// Every foreign key held by a table in `database` or pointing into it.
+    async fn foreign_keys(&self, database: &str) -> AppResult<Vec<TableForeignKey>>;
+
+    /// Splits `sql` into statements and tells which ones only read, by this session's quoting rules.
+    fn classify(&self, sql: &str) -> Vec<ClassifiedStatement>;
+
+    fn read_sql(&self, database: &str, query: &ReadQuery) -> AppResult<String>;
+
+    /// The statement that shows how the server would run `sql`, without running it.
+    fn explain_sql(&self, sql: &str) -> String;
+
     fn row_changes_sql(
         &self,
         database: &str,
@@ -94,7 +113,7 @@ pub trait DatabaseSession: Send + Sync {
         design: &TableDesign,
     ) -> AppResult<Vec<String>>;
 
-    async fn open_context(&self, database: Option<String>) -> AppResult<ContextId>;
+    async fn open_context(&self, database: Option<String>, access: ContextAccess) -> AppResult<ContextId>;
 
     async fn close_context(&self, context: ContextId);
 

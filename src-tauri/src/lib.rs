@@ -1,3 +1,4 @@
+pub mod agent;
 pub mod connections;
 pub mod db;
 pub mod error;
@@ -14,6 +15,7 @@ use std::sync::Arc;
 
 use tauri::{Manager, RunEvent};
 
+use agent::{AgentHost, CloseReason};
 use connections::ConnectionStore;
 use db::sessions::SessionManager;
 use saved_queries::SavedQueryStore;
@@ -35,14 +37,29 @@ pub fn run() {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
 
-            app.manage(Arc::new(Vault::new(data_dir.join("secrets.vault"))));
-            app.manage(Arc::new(ConnectionStore::load(data_dir.join("connections.json"))));
-            app.manage(Arc::new(KnownHosts::load(data_dir.join("known_hosts.json"))));
+            let vault = Arc::new(Vault::new(data_dir.join("secrets.vault")));
+            let store = Arc::new(ConnectionStore::load(data_dir.join("connections.json")));
+            let known_hosts = Arc::new(KnownHosts::load(data_dir.join("known_hosts.json")));
+            let agent = Arc::new(AgentHost::new(
+                Arc::new(app.handle().clone()),
+                data_dir.clone(),
+                store.clone(),
+                vault.clone(),
+                known_hosts.clone(),
+            ));
+
+            app.manage(vault);
+            app.manage(store);
+            app.manage(known_hosts);
             app.manage(Arc::new(SavedQueryStore::load(data_dir.join("saved_queries.json"))));
             app.manage(Arc::new(TabStateStore::load(data_dir.join("tab_state.json"))));
             app.manage(Arc::new(SettingsStore::load(data_dir.join("settings.json"))));
             app.manage(SessionManager::default());
             app.manage(PortForwards::default());
+            app.manage(agent.clone());
+
+            agent.start_maintenance();
+            tauri::async_runtime::spawn(async move { agent.apply().await });
             splash::open(app.handle())?;
             Ok(())
         })
@@ -92,6 +109,18 @@ pub fn run() {
             settings::get_settings,
             settings::set_settings,
             splash::show_main_window,
+            agent::commands::get_agent_config,
+            agent::commands::set_agent_config,
+            agent::commands::get_agent_status,
+            agent::commands::list_agent_sessions,
+            agent::commands::close_agent_session,
+            agent::commands::close_all_agent_sessions,
+            agent::commands::list_agent_approvals,
+            agent::commands::answer_agent_request,
+            agent::commands::list_agent_history,
+            agent::commands::get_agent_history_entry,
+            agent::commands::get_agent_history_size,
+            agent::commands::clear_agent_history,
         ])
         .build(tauri::generate_context!())
         .expect("error while building the app");
@@ -99,10 +128,12 @@ pub fn run() {
     app.run(|app_handle, event| {
         if let RunEvent::Exit = event {
             let sessions = app_handle.state::<SessionManager>().drain();
+            let agent = app_handle.state::<Arc<AgentHost>>().inner().clone();
             tauri::async_runtime::block_on(async move {
                 for open in sessions {
                     open.session.close().await;
                 }
+                agent.close_all(CloseReason::AppExit).await;
             });
         }
     });

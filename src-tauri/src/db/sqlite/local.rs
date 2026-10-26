@@ -82,8 +82,22 @@ impl SqliteConnector for LocalConnector {
     }
 
     async fn connect(&self) -> AppResult<Arc<dyn SqliteConnection>> {
+        self.connect_with(self.options.clone()).await
+    }
+
+    async fn connect_read_only(&self) -> AppResult<Arc<dyn SqliteConnection>> {
+        self.connect_with(SqliteOptions {
+            read_only: true,
+            create_if_missing: false,
+            ..self.options.clone()
+        })
+        .await
+    }
+}
+
+impl LocalConnector {
+    async fn connect_with(&self, options: SqliteOptions) -> AppResult<Arc<dyn SqliteConnection>> {
         let path = self.path.clone();
-        let options = self.options.clone();
         let conn = blocking(move || Self::open(&path, &options)).await?;
         Ok(Arc::new(LocalConnection {
             interrupt: conn.get_interrupt_handle(),

@@ -1,3 +1,4 @@
+mod classify;
 mod client;
 mod connect;
 mod ddl;

@@ -14,11 +14,47 @@
 .Actions {
   display: flex;
   align-items: center;
+  gap: 2px;
   padding: 0 6px;
 
   &.Locked {
     pointer-events: none;
   }
+}
+
+.AgentsButton {
+  position: relative;
+}
+
+.Live {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--success);
+  box-shadow: 0 0 0 2px var(--chrome);
+}
+
+.Pending {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background-color: var(--warning);
+  box-shadow: 0 0 0 2px var(--chrome);
+  color: var(--chrome);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .Content {

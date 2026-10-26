@@ -1,5 +1,6 @@
 import type { clickOutside } from "../directives/clickOutside";
 
+export * from "./agent";
 export * from "./connection";
 export * from "./db";
 export * from "./errors";

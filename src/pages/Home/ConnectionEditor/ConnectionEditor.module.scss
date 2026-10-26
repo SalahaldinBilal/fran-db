@@ -64,6 +64,69 @@
   }
 }
 
+.Names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.Name {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 4px 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-active);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+
+  button {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--surface-hover);
+      color: var(--text-strong);
+    }
+  }
+
+  &.Offered {
+    padding: 0 9px 0 6px;
+    border-style: dashed;
+    background-color: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+
+    &:hover {
+      border-color: var(--accent);
+      color: var(--text-strong);
+    }
+  }
+}
+
+.AddRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.AddInput {
+  flex: 1;
+  min-width: 0;
+}
+
 .TestArea {
   display: flex;
   align-items: center;

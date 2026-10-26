@@ -14,6 +14,8 @@ export type TabStripItem = {
   modified?: boolean,
   busy?: boolean,
   movable?: boolean,
+  count?: number,
+  countTone?: "warning",
 };
 
 export type TabStripApi = {
@@ -32,6 +34,7 @@ export type TabStripProps = {
   variant?: "global" | "inner",
   leading?: JSX.Element,
   trailing?: JSX.Element,
+  trailingAtEnd?: boolean,
   /** Empty parts of the strip move the window, and some empty space is always kept before `trailing`. */
   dragRegion?: boolean,
   /** Tabs ignore the mouse, so pressing one drags the window instead. */
@@ -296,6 +299,9 @@ function TabStrip(props: TabStripProps) {
                   }}
                 />
               </Show>
+              <Show when={item.count !== undefined}>
+                <span class={styles.Count} classList={{ [styles.Warning]: item.countTone === "warning" }}>{item.count}</span>
+              </Show>
               <Show when={item.modified}>
                 <span class={styles.Modified} aria-label="Unsaved changes" />
               </Show>
@@ -319,7 +325,13 @@ function TabStrip(props: TabStripProps) {
         <div class={styles.DragSpace} data-tauri-drag-region />
       </Show>
       <Show when={props.trailing}>
-        <div class={styles.Trailing} data-tauri-drag-region={dragAttribute()}>{props.trailing}</div>
+        <div
+          class={styles.Trailing}
+          classList={{ [styles.AtEnd]: props.trailingAtEnd ?? false }}
+          data-tauri-drag-region={dragAttribute()}
+        >
+          {props.trailing}
+        </div>
       </Show>
     </div>
   );

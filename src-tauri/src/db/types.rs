@@ -167,6 +167,79 @@ pub struct ForeignKeyDefinition {
     pub on_delete: Option<String>,
 }
 
+/// A foreign key with the table that holds it, from a listing of a whole database.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TableForeignKey {
+    pub database: String,
+    pub table: String,
+    #[serde(flatten)]
+    pub key: ForeignKeyDefinition,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum FilterValue {
+    Null,
+    Bool(bool),
+    /// Checked to be a plain number before it's written into SQL.
+    Number(String),
+    Text(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilterOp {
+    Eq,
+    Ne,
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+    Like,
+    NotLike,
+    In,
+    NotIn,
+    IsNull,
+    IsNotNull,
+    Between,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RowFilter {
+    pub column: String,
+    pub op: FilterOp,
+    pub values: Vec<FilterValue>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RowOrder {
+    pub column: String,
+    pub descending: bool,
+}
+
+/// A read the driver writes as SQL, so values and names are quoted by its rules.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ReadQuery {
+    Rows {
+        table: String,
+        columns: Vec<String>,
+        filters: Vec<RowFilter>,
+        order: Vec<RowOrder>,
+        limit: u64,
+        offset: u64,
+    },
+    Count {
+        table: String,
+        filters: Vec<RowFilter>,
+    },
+    /// Distinct values of a column with how often each appears, most common first.
+    ColumnValues {
+        table: String,
+        column: String,
+        filters: Vec<RowFilter>,
+        limit: u64,
+    },
+}
+
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ObjectStructure {

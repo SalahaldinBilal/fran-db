@@ -1,3 +1,4 @@
+mod classify;
 mod design;
 mod metadata;
 mod options;

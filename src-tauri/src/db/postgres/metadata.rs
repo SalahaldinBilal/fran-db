@@ -3,7 +3,7 @@ use super::ddl;
 use super::sqlgen::{Dialect, qualified, quote_identifier};
 use crate::db::types::{
     CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, DatabaseSize, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
-    ObjectKind, ObjectStructure, SqlTemplate,
+    ObjectKind, ObjectStructure, SqlTemplate, TableForeignKey,
 };
 use crate::error::AppError;
 
@@ -360,6 +360,52 @@ async fn foreign_keys(conn: &mut PgConnection, schema: &str, table: &str) -> Res
                 referenced_columns: vec![name(row, 4)],
                 on_update: referential_action(&name(row, 5)),
                 on_delete: referential_action(&name(row, 6)),
+            }),
+        }
+    }
+
+    Ok(keys)
+}
+
+pub async fn schema_foreign_keys(conn: &mut PgConnection, schema: &str) -> Result<Vec<TableForeignKey>, PgError> {
+    let rows = conn
+        .query_text(
+            "SELECT n.nspname, c.relname, con.conname, a.attname, rn.nspname, rc.relname, ra.attname, \
+                    con.confupdtype::text, con.confdeltype::text \
+             FROM pg_constraint con \
+             JOIN pg_class c ON c.oid = con.conrelid \
+             JOIN pg_namespace n ON n.oid = c.relnamespace \
+             JOIN pg_class rc ON rc.oid = con.confrelid \
+             JOIN pg_namespace rn ON rn.oid = rc.relnamespace \
+             CROSS JOIN LATERAL unnest(con.conkey, con.confkey) WITH ORDINALITY AS k(col, refcol, ord) \
+             JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.col \
+             JOIN pg_attribute ra ON ra.attrelid = con.confrelid AND ra.attnum = k.refcol \
+             WHERE con.contype = 'f' AND (n.nspname = $1 OR rn.nspname = $1) \
+             ORDER BY n.nspname, c.relname, con.conname, k.ord",
+            &[Some(schema)],
+        )
+        .await?;
+
+    let mut keys: Vec<TableForeignKey> = Vec::new();
+    for row in &rows {
+        let (owner, table, constraint) = (name(row, 0), name(row, 1), name(row, 2));
+        match keys.last_mut() {
+            Some(last) if last.database == owner && last.table == table && last.key.name == constraint => {
+                last.key.columns.push(name(row, 3));
+                last.key.referenced_columns.push(name(row, 6));
+            }
+            _ => keys.push(TableForeignKey {
+                database: owner,
+                table,
+                key: ForeignKeyDefinition {
+                    name: constraint,
+                    columns: vec![name(row, 3)],
+                    referenced_database: name(row, 4),
+                    referenced_table: name(row, 5),
+                    referenced_columns: vec![name(row, 6)],
+                    on_update: referential_action(&name(row, 7)),
+                    on_delete: referential_action(&name(row, 8)),
+                },
             }),
         }
     }

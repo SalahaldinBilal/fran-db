@@ -3,6 +3,7 @@ use std::sync::Arc;
 use tauri::State;
 
 use super::{ConnectionProfile, ConnectionStore, secret_id, secret_prefix};
+use crate::agent::AgentHost;
 use crate::error::{AppError, AppResult};
 use crate::tab_state::TabStateStore;
 use crate::vault::Vault;
@@ -17,6 +18,7 @@ pub async fn list_connections(
 #[tauri::command]
 pub async fn save_connection(
     store: State<'_, Arc<ConnectionStore>>,
+    agent: State<'_, Arc<AgentHost>>,
     mut profile: ConnectionProfile,
 ) -> AppResult<ConnectionProfile> {
     if profile.name.trim().is_empty() {
@@ -36,6 +38,7 @@ pub async fn save_connection(
         Ok(())
     })?;
 
+    agent.close_connection_sessions(&saved.id).await;
     Ok(saved)
 }
 
@@ -74,6 +77,7 @@ pub async fn delete_connection(
     store: State<'_, Arc<ConnectionStore>>,
     vault: State<'_, Arc<Vault>>,
     tab_state: State<'_, Arc<TabStateStore>>,
+    agent: State<'_, Arc<AgentHost>>,
     id: String,
 ) -> AppResult<()> {
     let target = id.clone();
@@ -81,6 +85,7 @@ pub async fn delete_connection(
         file.connections.retain(|profile| profile.id != target);
         Ok(())
     })?;
+    agent.close_connection_sessions(&id).await;
 
     let target = id.clone();
     tab_state.update(move |file| {

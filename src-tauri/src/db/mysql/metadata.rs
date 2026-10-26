@@ -4,7 +4,7 @@ use super::sqlgen::{Dialect, qualified, quote_identifier};
 use super::values::{format_value, parse_choices};
 use crate::db::types::{
     CatalogColumn, ColumnChoices, ColumnDefinition, DatabaseInfo, DatabaseSize, ForeignKeyDefinition, IndexDefinition, ObjectInfo,
-    ObjectKind, ObjectStructure, ServerInfo, SqlTemplate, ValueCategory,
+    ObjectKind, ObjectStructure, ServerInfo, SqlTemplate, TableForeignKey, ValueCategory,
 };
 use crate::error::{AppError, AppResult};
 
@@ -431,6 +431,47 @@ async fn foreign_keys(
                 referenced_columns: vec![name(row, 4)],
                 on_update: non_empty(text(row, 5)),
                 on_delete: non_empty(text(row, 6)),
+            }),
+        }
+    }
+
+    Ok(keys)
+}
+
+pub async fn database_foreign_keys(conn: &mut Conn, database: &str) -> Result<Vec<TableForeignKey>, mysql_async::Error> {
+    let rows: Vec<Row> = conn
+        .exec(
+            "SELECT k.TABLE_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_SCHEMA, \
+                    k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE \
+             FROM information_schema.KEY_COLUMN_USAGE k \
+             JOIN information_schema.REFERENTIAL_CONSTRAINTS r \
+               ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME AND r.TABLE_NAME = k.TABLE_NAME \
+             WHERE (k.TABLE_SCHEMA = ? OR k.REFERENCED_TABLE_SCHEMA = ?) AND k.REFERENCED_TABLE_NAME IS NOT NULL \
+             ORDER BY k.TABLE_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME, k.ORDINAL_POSITION",
+            (database, database),
+        )
+        .await?;
+
+    let mut keys: Vec<TableForeignKey> = Vec::new();
+    for row in &rows {
+        let (schema, table, constraint) = (name(row, 0), name(row, 1), name(row, 2));
+        match keys.last_mut() {
+            Some(last) if last.database == schema && last.table == table && last.key.name == constraint => {
+                last.key.columns.push(name(row, 3));
+                last.key.referenced_columns.push(name(row, 6));
+            }
+            _ => keys.push(TableForeignKey {
+                database: schema,
+                table,
+                key: ForeignKeyDefinition {
+                    name: constraint,
+                    columns: vec![name(row, 3)],
+                    referenced_database: name(row, 4),
+                    referenced_table: name(row, 5),
+                    referenced_columns: vec![name(row, 6)],
+                    on_update: non_empty(text(row, 7)),
+                    on_delete: non_empty(text(row, 8)),
+                },
             }),
         }
     }

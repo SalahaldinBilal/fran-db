@@ -5,7 +5,7 @@ use std::{
     pin::Pin,
 };
 
-use fran_db_lib::db::session::{ContextId, DatabaseSession};
+use fran_db_lib::db::session::{ContextAccess, ContextId, DatabaseSession};
 use fran_db_lib::db::types::{ResultSet, StatementOutcome};
 use libtest_mimic::Failed;
 
@@ -92,7 +92,10 @@ impl Ctx {
             format!("CREATE SCHEMA \"{}\"", ctx.ns),
         );
         ctx.run_fresh(&create).await?;
-        ctx.context = ctx.session.open_context(Some(ctx.ns.clone())).await?;
+        ctx.context = ctx
+            .session
+            .open_context(Some(ctx.ns.clone()), ContextAccess::ReadWrite)
+            .await?;
         ctx.run(ctx.pick(MYSQL_SEED, POSTGRES_SEED)).await?;
         Ok(ctx)
     }
@@ -129,7 +132,7 @@ impl Ctx {
 
     /// Runs SQL on a context of its own, opened without a default database or schema.
     pub async fn run_fresh(&self, sql: &str) -> TestResult<Vec<StatementOutcome>> {
-        let context = self.session.open_context(None).await?;
+        let context = self.session.open_context(None, ContextAccess::ReadWrite).await?;
         let outcomes = self.session.execute(context, sql, 1000).await;
         self.session.close_context(context).await;
         let outcomes = outcomes?;

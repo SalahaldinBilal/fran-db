@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
+use crate::agent::access::AgentAccess;
 use crate::db::DriverOptions;
 use crate::error::{AppError, AppResult};
 use crate::json_store::JsonStore;
@@ -20,6 +21,8 @@ pub struct ConnectionProfile {
     pub color: Option<String>,
     #[serde(default)]
     pub forward_port: Option<u16>,
+    #[serde(default)]
+    pub agent_access: AgentAccess,
     #[serde(flatten)]
     pub driver: DriverOptions,
 }

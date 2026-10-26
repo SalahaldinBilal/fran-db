@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Query results that can be edited have an Add row button, including results from an empty table.
 - Query results from Cloudflare D1 can be edited when the query reads one table and lists its columns by name or with `*`.
 - Connection tabs and the tabs inside a database can be reordered by dragging them.
+- Coding agents like Claude Code, Cursor and VS Code can use your connections through an MCP server built into Fran DB. The robot button in the title bar opens the Agents tab, where you turn the server on and copy the JSON to add it to an agent. Its Access page sets what agents may do with each connection: nothing (the default), read, or read and ask before changing anything, optionally limited to some databases. Agents get tools to explore the schema and read rows, so they rarely need their own SQL. Every change they want to make opens a review in Fran DB showing each row's current and new values, the SQL and the agent's request, and only runs after you approve it. The Activity page lists open and closed agent sessions and every call with the SQL it ran and what the agent got back, kept encrypted and browsable by day. The Server page has switches to turn off raw SQL or changes for every agent and to stop keeping history.
 
 ### Changed
 

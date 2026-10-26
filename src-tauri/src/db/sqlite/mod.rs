@@ -1,3 +1,4 @@
+mod classify;
 mod connection;
 pub mod d1;
 mod definition;

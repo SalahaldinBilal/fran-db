@@ -1,3 +1,5 @@
+import type { AgentAccess } from "./agent";
+
 export type DatabaseKind = "mysql" | "postgres" | "sqlite" | "d1";
 
 export type SecretSlot = {
@@ -106,6 +108,7 @@ export type ConnectionProfile = {
   name: string,
   color: string | null,
   forwardPort: number | null,
+  agentAccess: AgentAccess,
 } & DriverOptions;
 
 export type VaultStatus = {

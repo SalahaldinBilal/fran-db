@@ -11,9 +11,11 @@ import useToastState from "./toastState";
 import useSettingsState from "./settingsState";
 
 export const HOME_TAB_ID = "home";
+export const AGENTS_TAB_ID = "agents";
 
 export type GlobalTab =
   | { id: typeof HOME_TAB_ID, kind: "home" }
+  | { id: typeof AGENTS_TAB_ID, kind: "agents" }
   | { id: string, kind: "session", sessionId: string };
 
 export type QueryTabState = {
@@ -359,15 +361,33 @@ function useWorkspaceStateInner() {
     }
   }
 
-  async function closeSession(sessionId: string) {
+  function openAgents() {
     setStore(produce(state => {
-      const index = state.globalTabs.findIndex(tab => tab.id === sessionId);
+      if (!state.globalTabs.some(tab => tab.kind === "agents")) state.globalTabs.push({ id: AGENTS_TAB_ID, kind: "agents" });
+      state.activeGlobalTabId = AGENTS_TAB_ID;
+    }));
+  }
+
+  function removeGlobalTab(id: string) {
+    setStore(produce(state => {
+      const index = state.globalTabs.findIndex(tab => tab.id === id);
       if (index < 0) return;
 
       state.globalTabs.splice(index, 1);
-      if (state.activeGlobalTabId === sessionId) {
+      if (state.activeGlobalTabId === id) {
         state.activeGlobalTabId = state.globalTabs[Math.max(0, index - 1)]?.id ?? HOME_TAB_ID;
       }
+    }));
+  }
+
+  function closeGlobalTab(id: string) {
+    if (id === AGENTS_TAB_ID) removeGlobalTab(id);
+    else closeSession(id);
+  }
+
+  async function closeSession(sessionId: string) {
+    removeGlobalTab(sessionId);
+    setStore(produce(state => {
       delete state.sessions[sessionId];
     }));
 
@@ -607,6 +627,8 @@ function useWorkspaceStateInner() {
     queryText,
     setQueryText,
     activateGlobalTab,
+    openAgents,
+    closeGlobalTab,
     openConnection,
     switchCatalog,
     closeSession,

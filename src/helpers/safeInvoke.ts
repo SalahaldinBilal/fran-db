@@ -1,5 +1,6 @@
 import { Channel, invoke, InvokeOptions } from "@tauri-apps/api/core";
 import {
+  AgentApproval, AgentConfig, AgentHistoryEntry, AgentServerStatus, AgentSessionInfo,
   BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, ConnectionProfile, DatabaseInfo, DatabaseKind, DatabaseSize, DesignOptions,
   HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, RowChange, SavedQuery, ServerInfo,
   SessionInfo, SqlTemplate, StatementOutcome, StatementRange, TableDesign, VaultStatus,
@@ -71,4 +72,17 @@ type Commands = {
   "set_settings": Command<{ settings: unknown }>,
 
   "show_main_window": Command,
+
+  "get_agent_config": Command<undefined, AgentConfig>,
+  "set_agent_config": Command<{ config: AgentConfig }, AgentServerStatus>,
+  "get_agent_status": Command<undefined, AgentServerStatus>,
+  "list_agent_sessions": Command<undefined, AgentSessionInfo[]>,
+  "close_agent_session": Command<{ id: string }>,
+  "close_all_agent_sessions": Command,
+  "list_agent_approvals": Command<undefined, AgentApproval[]>,
+  "answer_agent_request": Command<{ id: string, approved: boolean }>,
+  "list_agent_history": Command<{ from: number, to: number }, AgentHistoryEntry[]>,
+  "get_agent_history_entry": Command<{ id: string, at: number }, AgentHistoryEntry | null>,
+  "get_agent_history_size": Command<undefined, number>,
+  "clear_agent_history": Command,
 };

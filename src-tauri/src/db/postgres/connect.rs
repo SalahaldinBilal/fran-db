@@ -18,6 +18,7 @@ use crate::error::{AppError, AppResult};
 use crate::ssh::{SshTunnel, known_hosts::KnownHosts};
 
 const KEEPALIVE_AFTER: Duration = Duration::from_secs(60);
+const READ_ONLY_OPTION: &str = "-c default_transaction_read_only=on";
 
 #[derive(Clone)]
 enum Endpoint {
@@ -210,13 +211,18 @@ impl Connector {
         }
     }
 
-    async fn establish(&self, schema: Option<&str>) -> Result<PgConnection, PgError> {
+    async fn establish(&self, schema: Option<&str>, read_only: bool) -> Result<PgConnection, PgError> {
         let socket = self.secure(self.open_socket().await?).await?;
+        let options: Vec<String> = schema
+            .map(search_path_option)
+            .into_iter()
+            .chain(read_only.then(|| READ_ONLY_OPTION.to_string()))
+            .collect();
         let params = StartupParams {
             user: &self.user,
             password: &self.password,
             database: &self.database,
-            options: schema.map(search_path_option),
+            options: (!options.is_empty()).then(|| options.join(" ")),
         };
 
         let mut connection = PgConnection::startup(socket, &params).await?;
@@ -228,7 +234,12 @@ impl Connector {
 
     /// `schema` goes first on the new connection's search path.
     pub async fn connect(&self, schema: Option<&str>) -> Result<PgConnection, PgError> {
-        match tokio::time::timeout(self.timeout, self.establish(schema)).await {
+        self.connect_as(schema, false).await
+    }
+
+    /// A read-only connection gets `default_transaction_read_only` at startup, before any SQL runs.
+    pub async fn connect_as(&self, schema: Option<&str>, read_only: bool) -> Result<PgConnection, PgError> {
+        match tokio::time::timeout(self.timeout, self.establish(schema, read_only)).await {
             Ok(result) => result,
             Err(_) => Err(PgError::Transport("Timed out connecting to the server".to_string())),
         }

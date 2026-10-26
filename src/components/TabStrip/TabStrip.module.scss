@@ -29,6 +29,10 @@
 .Trailing {
   gap: 2px;
   padding: 0 6px;
+
+  &.AtEnd {
+    margin-left: auto;
+  }
 }
 
 // Presses go through to the strip behind, which drags the window.
@@ -131,6 +135,28 @@
   color: var(--text-strong);
   font: inherit;
   outline: none;
+}
+
+.Count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background-color: rgb(255 255 255 / 6%);
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+
+  &.Warning {
+    background-color: rgb(from var(--warning) r g b / 18%);
+    color: var(--warning);
+  }
 }
 
 .Modified {

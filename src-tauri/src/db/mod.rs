@@ -1,6 +1,8 @@
+pub mod classify;
 pub mod commands;
 pub mod mysql;
 pub mod postgres;
+pub mod read_query;
 pub mod session;
 pub mod sessions;
 pub mod sqlite;

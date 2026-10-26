@@ -3,7 +3,7 @@ use super::definition;
 use super::sqlgen::{qualified, quote_identifier, string_literal};
 use crate::db::types::{
     CatalogColumn, ColumnDefinition, DatabaseInfo, DatabaseSize, ForeignKeyDefinition, IndexDefinition, ObjectInfo, ObjectKind,
-    ObjectStructure, SqlTemplate,
+    ObjectStructure, SqlTemplate, TableForeignKey,
 };
 use crate::error::{AppError, AppResult};
 
@@ -398,6 +398,30 @@ async fn foreign_keys(conn: &dyn SqliteConnection, schema: &str, table: &str) ->
             on_delete: Some(key.on_delete),
         })
         .collect())
+}
+
+/// SQLite keys can't cross databases, so only the tables of `schema` are read.
+pub async fn database_foreign_keys(
+    conn: &dyn SqliteConnection,
+    schema: &str,
+    is_internal: &(dyn Fn(&str) -> bool + Sync),
+) -> AppResult<Vec<TableForeignKey>> {
+    let tables = rows(
+        conn,
+        &format!("SELECT name FROM {} WHERE type = 'table' ORDER BY name", master(schema)),
+        &[],
+    )
+    .await?;
+
+    let mut keys = Vec::new();
+    for table in tables.iter().map(|row| name(row, 0)).filter(|table| !is_internal(table)) {
+        keys.extend(foreign_keys(conn, schema, &table).await?.into_iter().map(|key| TableForeignKey {
+            database: schema.to_string(),
+            table: table.clone(),
+            key,
+        }));
+    }
+    Ok(keys)
 }
 
 fn kind_name(kind: ObjectKind) -> AppResult<&'static str> {
