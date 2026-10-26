@@ -10,6 +10,7 @@ import { SavedQuery } from "@core/types";
 import Input from "@core/components/Input/Input";
 import Button from "@core/components/Button/Button";
 import EmptyState from "@core/components/EmptyState/EmptyState";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 import SavedQueryEditor, { SavedQueryEditorState } from "./SavedQueryEditor";
 
 function SavedQueriesPanel(props: { sessionId: string }) {
@@ -61,8 +62,8 @@ function SavedQueriesPanel(props: { sessionId: string }) {
   function QueryRow(rowProps: { query: SavedQuery }) {
     return (
       <div
+        ref={element => tooltip(element, () => rowProps.query.sql)}
         class={styles.QueryRow}
-        title={rowProps.query.sql}
         onDblClick={() => workspace.openSavedQuery(props.sessionId, rowProps.query)}
         onContextMenu={event => openContextMenu(event, [
           { label: "Open in new tab", icon: SquarePen, onSelect: () => workspace.openSavedQuery(props.sessionId, rowProps.query) },

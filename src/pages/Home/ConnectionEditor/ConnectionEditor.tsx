@@ -18,6 +18,7 @@ import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
 import Switch from "@core/components/Switch/Switch";
 import ColorPicker from "@core/components/ColorPicker/ColorPicker";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 
 const COLORS = ["#4a88c7", "#4fa37a", "#c9a34a", "#d07a3c", "#c75450", "#9a6fc4", "#7d8590"];
 
@@ -152,7 +153,11 @@ function ConnectionEditor(props: ConnectionEditorProps) {
             </Button>
             <Show when={testResult()}>
               {result => (
-                <span class={styles.TestResult} classList={{ [styles.Failed]: !result().ok }} title={result().message}>
+                <span
+                  ref={element => tooltip(element, () => result().message)}
+                  class={styles.TestResult}
+                  classList={{ [styles.Failed]: !result().ok }}
+                >
                   {result().ok ? <CircleCheck size={14} /> : <CircleAlert size={14} />}
                   <span>{result().message}</span>
                 </span>
@@ -206,12 +211,12 @@ function ConnectionEditor(props: ConnectionEditorProps) {
               )}
             </For>
             <button
+              ref={element => tooltip(element, () => "Custom color")}
               class={`${styles.Swatch} ${styles.Custom}`}
               classList={{ [styles.Selected]: customColor() !== null }}
               style={{ "--swatch": customColor() ?? undefined }}
               aria-label="Custom color"
               aria-expanded={pickerAnchor() !== null}
-              title="Custom color"
               onClick={event => setPickerAnchor(pickerAnchor() ? null : event.currentTarget)}
             >
               <Show when={customColor() === null}>

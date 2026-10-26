@@ -10,6 +10,7 @@ import Button from "@core/components/Button/Button";
 import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
 import SegmentedControl from "@core/components/SegmentedControl/SegmentedControl";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 import SchemaTree from "./SchemaTree";
 import SavedQueriesPanel from "./SavedQueriesPanel";
 
@@ -85,7 +86,9 @@ function SchemaBrowser(props: { sessionId: string }) {
                 {current().profile.name.trim().charAt(0).toUpperCase()}
               </div>
               <div class={styles.ConnectionText}>
-                <div class={styles.ConnectionName} title={current().profile.name}>{current().profile.name}</div>
+                <div class={styles.ConnectionName} ref={element => tooltip(element, () => current().profile.name)}>
+                  {current().profile.name}
+                </div>
                 <div class={styles.ServerVersion}>
                   {current().info.server.product} {current().info.server.version}
                 </div>
@@ -111,7 +114,7 @@ function SchemaBrowser(props: { sessionId: string }) {
 
             <Show when={catalog()}>
               {name => (
-                <div class={styles.CatalogPicker} title={module.catalogLabel ?? undefined}>
+                <div class={styles.CatalogPicker} ref={element => tooltip(element, () => module.catalogLabel)}>
                   <Database size={14} class={styles.CatalogIcon} />
                   <div class={styles.CatalogSelect}>
                     <Select

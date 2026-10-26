@@ -3,6 +3,7 @@ import { For, Show, createEffect, createMemo, createSignal, on, untrack } from "
 import { ChevronLeft, ChevronRight, Clock } from "lucide-solid";
 import { ColumnMeta } from "@core/types";
 import Button from "../../Button/Button";
+import { tooltip } from "../../Tooltip/Tooltip";
 import Facts, { Fact } from "./Facts";
 import {
   DateParts, TemporalValue, TimeParts, canonicalTemporal, currentTemporal, dayOfYear, describeDuration, formatDate,
@@ -47,7 +48,7 @@ function Segment(props: SegmentProps) {
       style={{ width: `${Math.max(digits(), String(props.max).length) + 1.6}ch` }}
       value={display()}
       aria-label={props.label}
-      title={props.label}
+      ref={element => tooltip(element, () => props.label)}
       inputMode="numeric"
       readOnly={!props.editable}
       spellcheck={false}
@@ -282,7 +283,7 @@ function TemporalView(props: TemporalViewProps) {
                   style={{ width: `${fractionDigits + 1.6}ch` }}
                   value={clock().fraction.padEnd(fractionDigits, "0")}
                   aria-label="Fraction of a second"
-                  title="Fraction of a second"
+                  ref={element => tooltip(element, () => "Fraction of a second")}
                   inputMode="numeric"
                   readOnly={!props.editable}
                   onFocus={event => event.currentTarget.select()}

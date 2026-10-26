@@ -11,6 +11,7 @@ import { formatBytes, formatCount } from "@core/helpers";
 import { DatabaseInfo, ObjectInfo } from "@core/types";
 import Input from "@core/components/Input/Input";
 import Spinner from "@core/components/Spinner/Spinner";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 import { databaseMenu, folderMenu, objectMenu } from "./menus";
 
 // Workbench-style: these folders always show, the rest only when they have something in them.
@@ -143,7 +144,6 @@ function SchemaTree(props: { sessionId: string }) {
                             <div
                               class={styles.Row}
                               style={{ "--depth": "2" }}
-                              title={object.comment ?? object.detail ?? undefined}
                               onDblClick={() => openObject(name(), object)}
                               onContextMenu={event => openContextMenu(
                                 event,
@@ -152,15 +152,19 @@ function SchemaTree(props: { sessionId: string }) {
                             >
                               <span class={`${styles.Chevron} ${styles.Hidden}`} />
                               <Dynamic component={kind.icon} size={14} class={styles.NodeIcon} />
-                              <span class={styles.Name}>{object.name}</span>
+                              <span class={styles.Name} ref={element => tooltip(element, () => object.comment ?? object.detail)}>
+                                {object.name}
+                              </span>
                               <Show when={(object.kind === "function" || object.kind === "procedure") && object.signature !== null}>
-                                <span class={styles.Meta} title={`(${object.signature})`}>({object.signature})</span>
+                                <span class={styles.Meta} ref={element => tooltip(element, () => `(${object.signature})`)}>
+                                  ({object.signature})
+                                </span>
                               </Show>
                               <Show when={object.rowEstimate}>
                                 {rows => (
                                   <span
                                     class={styles.Meta}
-                                    title={object.sizeBytes !== null ? formatBytes(object.sizeBytes) : undefined}
+                                    ref={element => tooltip(element, () => (object.sizeBytes !== null ? formatBytes(object.sizeBytes) : null))}
                                   >
                                     {formatCount(rows())}
                                   </span>

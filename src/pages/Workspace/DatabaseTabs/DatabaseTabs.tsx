@@ -9,6 +9,7 @@ import { objectKindInfo } from "@core/constants/objectKinds";
 import TabStrip, { TabStripApi, TabStripItem } from "@core/components/TabStrip/TabStrip";
 import Button from "@core/components/Button/Button";
 import EmptyState from "@core/components/EmptyState/EmptyState";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 import QueryTab from "../../tabs/QueryTab/QueryTab";
 import StructureTab from "../../tabs/StructureTab/StructureTab";
 import TableDesignerTab from "../../tabs/TableDesignerTab/TableDesignerTab";
@@ -80,7 +81,7 @@ function DatabaseTabs(props: DatabaseTabsProps) {
   return (
     <div class={styles.DatabaseTabs}>
       <div class={styles.Bar}>
-        <div class={styles.DatabaseName} title={props.database}>
+        <div class={styles.DatabaseName} ref={element => tooltip(element, () => props.database)}>
           <Database size={14} />
           <span>{props.database}</span>
         </div>

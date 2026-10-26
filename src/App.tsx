@@ -6,6 +6,7 @@ import Button from "./components/Button/Button";
 import SettingsModal from "./components/SettingsModal/SettingsModal";
 import Toasts from "./components/Toasts/Toasts";
 import ContextMenuHost from "./components/ContextMenu/ContextMenuHost";
+import TooltipHost from "./components/Tooltip/TooltipHost";
 import Prompts from "./components/Prompts/Prompts";
 import PortForwardModal from "./components/PortForwardModal/PortForwardModal";
 import Home from "./pages/Home/Home";
@@ -118,6 +119,7 @@ function App() {
       <Prompts />
       <PortForwardModal />
       <ContextMenuHost />
+      <TooltipHost />
       <Toasts />
     </div>
   );

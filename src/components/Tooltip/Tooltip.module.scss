@@ -1,0 +1,70 @@
+.Tooltip {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  z-index: var(--z-tooltip);
+  box-sizing: border-box;
+  max-width: 320px;
+  padding: 5px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-active);
+  box-shadow: var(--shadow-float);
+  color: var(--text-strong);
+  font-size: var(--font-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  user-select: none;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(var(--dx), var(--dy));
+  transition: opacity var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease);
+
+  &.Visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.Content {
+  display: block;
+  max-height: 40vh;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// A rotated square whose two outer borders draw the arrow's outline.
+.Arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface-active);
+  transform: rotate(45deg);
+
+  .Top & {
+    bottom: -4.5px;
+    border-top: 0;
+    border-left: 0;
+  }
+
+  .Bottom & {
+    top: -4.5px;
+    border-bottom: 0;
+    border-right: 0;
+  }
+
+  .Left & {
+    right: -4.5px;
+    border-bottom: 0;
+    border-left: 0;
+  }
+
+  .Right & {
+    left: -4.5px;
+    border-top: 0;
+    border-right: 0;
+  }
+}

@@ -3,6 +3,7 @@ import { For, Show, createMemo } from "solid-js";
 import { Minus, Plus } from "lucide-solid";
 import { ColumnMeta } from "@core/types";
 import Button from "../../Button/Button";
+import { tooltip } from "../../Tooltip/Tooltip";
 import Facts, { Fact } from "./Facts";
 import {
   bitWidth, clamp, countBits, digitCounts, groupDigits, inRange, integerInfo, isDecimal, isFloat, isInteger,
@@ -152,7 +153,7 @@ function NumberView(props: NumberViewProps) {
                         <button
                           class={styles.Bit}
                           classList={{ [styles.BitSet]: set() === 1n }}
-                          title={`Bit ${index}`}
+                          ref={element => tooltip(element, () => `Bit ${index}`)}
                           tabIndex={props.editable ? 0 : -1}
                           onClick={() => toggleBit(index)}
                         >

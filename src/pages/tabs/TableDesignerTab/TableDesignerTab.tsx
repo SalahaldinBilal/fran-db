@@ -24,6 +24,7 @@ import SegmentedControl from "@core/components/SegmentedControl/SegmentedControl
 import Toggle from "@core/components/Switch/Switch";
 import Spinner from "@core/components/Spinner/Spinner";
 import EmptyState from "@core/components/EmptyState/EmptyState";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 import Field, { FieldRow } from "@core/components/Field/Field";
 import ReviewSqlModal, { ApplySafety } from "@core/components/ReviewSqlModal/ReviewSqlModal";
 
@@ -106,7 +107,7 @@ function Inspector(props: { kind: string, title: string, children: JSX.Element }
     <aside class={styles.Inspector}>
       <header class={styles.InspectorHeader}>
         <span class={styles.InspectorKind}>{props.kind}</span>
-        <span class={styles.InspectorTitle} title={props.title}>{props.title}</span>
+        <span class={styles.InspectorTitle} ref={element => tooltip(element, () => props.title)}>{props.title}</span>
       </header>
       <div class={styles.InspectorBody}>{props.children}</div>
     </aside>
@@ -705,17 +706,17 @@ function TableDesignerTab(props: TableDesignerTabProps) {
                           <th class={styles.Lead} />
                           <th class={styles.NameHead}>Name</th>
                           <th class={styles.TypeHead}>Type</th>
-                          <th class={styles.Check} title="Primary key">PK</th>
-                          <th class={styles.Check} title="Not null">NN</th>
-                          <th class={styles.Check} title="Unique">UQ</th>
+                          <th class={styles.Check} ref={element => tooltip(element, () => "Primary key")}>PK</th>
+                          <th class={styles.Check} ref={element => tooltip(element, () => "Not null")}>NN</th>
+                          <th class={styles.Check} ref={element => tooltip(element, () => "Unique")}>UQ</th>
                           <Show when={capabilities()?.unsigned}>
-                            <th class={styles.Check} title="Unsigned">UN</th>
+                            <th class={styles.Check} ref={element => tooltip(element, () => "Unsigned")}>UN</th>
                           </Show>
                           <Show when={capabilities()?.zerofill}>
-                            <th class={styles.Check} title="Zero fill, pads numbers with leading zeros">ZF</th>
+                            <th class={styles.Check} ref={element => tooltip(element, () => "Zero fill, pads numbers with leading zeros")}>ZF</th>
                           </Show>
-                          <th class={styles.Check} title="Auto increment">AI</th>
-                          <th class={styles.Check} title="Generated">G</th>
+                          <th class={styles.Check} ref={element => tooltip(element, () => "Auto increment")}>AI</th>
+                          <th class={styles.Check} ref={element => tooltip(element, () => "Generated")}>G</th>
                           <th>Default</th>
                           <th>Comment</th>
                           <th class={styles.Lead} />
@@ -817,7 +818,7 @@ function TableDesignerTab(props: TableDesignerTabProps) {
                                 <input
                                   class={`${styles.CellInput} ${styles.Mono}`}
                                   classList={{ [styles.Invalid]: defaultProblem(column()) !== null }}
-                                  title={defaultProblem(column())?.message}
+                                  ref={element => tooltip(element, () => defaultProblem(column())?.message)}
                                   value={column().defaultValue ?? ""}
                                   placeholder={column().generatedExpression !== null ? "generated" : column().autoIncrement ? "auto" : "none"}
                                   disabled={column().generatedExpression !== null || column().autoIncrement}
@@ -1071,7 +1072,7 @@ function TableDesignerTab(props: TableDesignerTabProps) {
                                       <input
                                         class={`${styles.CellInput} ${styles.LengthInput}`}
                                         placeholder="length"
-                                        title="Index only this many leading characters"
+                                        ref={element => tooltip(element, () => "Index only this many leading characters")}
                                         value={column().length ?? ""}
                                         onChange={event => {
                                           const length = Number.parseInt(event.currentTarget.value, 10);

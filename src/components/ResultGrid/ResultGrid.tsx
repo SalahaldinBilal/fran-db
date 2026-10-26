@@ -8,6 +8,7 @@ import useSettingsState, { CellEditMode } from "@core/states/settingsState";
 import { copyText } from "@core/helpers/clipboard";
 import { looksLikeJson } from "@core/helpers/values";
 import ValueViewer from "./ValueViewer";
+import { tooltip } from "../Tooltip/Tooltip";
 import { canonicalTemporal, fractionDigitsOf, isZonedType, temporalKind } from "./views/temporal";
 
 const ROW_HEIGHT = 26;
@@ -360,10 +361,10 @@ function ResultGrid(props: ResultGridProps) {
           <For each={props.columns}>
             {(column, index) => (
               <div
+                ref={element => tooltip(element, () => `${column.name} ${column.typeName}${column.nullable ? "" : " NOT NULL"}${column.table ? ` (${column.table})` : ""}`)}
                 class={styles.HeaderCell}
                 classList={{ [styles.Numeric]: NUMERIC.has(column.category) }}
                 style={{ width: `${widths[index()]}px` }}
-                title={`${column.name} ${column.typeName}${column.nullable ? "" : " NOT NULL"}${column.table ? ` (${column.table})` : ""}`}
               >
                 <div class={styles.ColumnName}>
                   <Show when={column.primaryKey}><KeyRound size={12} class={styles.KeyIcon} /></Show>
@@ -477,8 +478,8 @@ function ResultGrid(props: ResultGridProps) {
                               }}
                             />
                             <button
+                              ref={element => tooltip(element, () => "Edit in viewer (Shift+Enter)")}
                               class={styles.ExpandEditor}
-                              title="Edit in viewer (Shift+Enter)"
                               tabIndex={-1}
                               onMouseDown={event => event.preventDefault()}
                               onClick={event => {

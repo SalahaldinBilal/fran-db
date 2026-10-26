@@ -11,6 +11,7 @@ import useToastState from "@core/states/toastState";
 import usePortForwardState from "@core/states/portForwardState";
 import Button from "@core/components/Button/Button";
 import Spinner from "@core/components/Spinner/Spinner";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 
 export type ConnectionCardProps = {
   profile: ConnectionProfile,
@@ -97,7 +98,7 @@ function ConnectionCard(props: ConnectionCardProps) {
           <Database size={18} />
         </div>
         <div class={styles.Titles}>
-          <div class={styles.Name} title={props.profile.name}>{props.profile.name}</div>
+          <div class={styles.Name} ref={element => tooltip(element, () => props.profile.name)}>{props.profile.name}</div>
           <div class={styles.Kind}>{details().kind}</div>
         </div>
         <div class={styles.Tools} classList={{ [styles.Pinned]: forwarding() }} onClick={event => event.stopPropagation()}>
@@ -129,7 +130,7 @@ function ConnectionCard(props: ConnectionCardProps) {
         </div>
       </div>
 
-      <div class={styles.Target} title={details().target}>
+      <div class={styles.Target} ref={element => tooltip(element, () => details().target)}>
         <Server size={14} />
         <span>{details().target}</span>
       </div>

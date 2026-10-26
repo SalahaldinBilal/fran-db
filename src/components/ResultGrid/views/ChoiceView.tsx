@@ -3,6 +3,7 @@ import { For, Show, createMemo, createSignal, onMount } from "solid-js";
 import { Check, Search } from "lucide-solid";
 import { ColumnChoices } from "@core/types";
 import { plural } from "@core/helpers";
+import { tooltip } from "../../Tooltip/Tooltip";
 
 export type ChoiceViewProps = {
   choices: ColumnChoices,
@@ -139,7 +140,7 @@ function ChoiceView(props: ChoiceViewProps) {
               role={props.choices.multiple ? "checkbox" : "radio"}
               aria-checked={isPicked(entry.choice)}
               data-choice={entry.choice}
-              title={entry.choice === "" ? "Empty string" : entry.choice}
+              ref={element => tooltip(element, () => (entry.choice === "" ? "Empty string" : entry.choice))}
               tabIndex={props.editable || isPicked(entry.choice) ? 0 : -1}
               onClick={() => pick(entry.choice)}
             >

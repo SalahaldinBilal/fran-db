@@ -26,6 +26,7 @@ import Input from "@core/components/Input/Input";
 import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
 import EmptyState from "@core/components/EmptyState/EmptyState";
+import { tooltip } from "@core/components/Tooltip/Tooltip";
 
 const ROW_LIMITS = [
   { value: 100, label: "Limit 100" },
@@ -485,7 +486,11 @@ function QueryTab(props: QueryTabProps) {
                       before={<Search size={12} />}
                       after={
                         <Show when={filterText() !== ""}>
-                          <button class={styles.ClearFilter} title="Clear filter" onClick={() => setFilterText("")}>
+                          <button
+                            class={styles.ClearFilter}
+                            ref={element => tooltip(element, () => "Clear filter")}
+                            onClick={() => setFilterText("")}
+                          >
                             <X size={12} />
                           </button>
                         </Show>
@@ -496,7 +501,7 @@ function QueryTab(props: QueryTabProps) {
                       fallback={
                         <Show when={entry().readOnlyReason()}>
                           {reason => (
-                            <span class={styles.EditState} title={reason()}>
+                            <span class={styles.EditState} ref={element => tooltip(element, reason)}>
                               <Lock size={12} />
                               Read only
                             </span>
@@ -506,7 +511,10 @@ function QueryTab(props: QueryTabProps) {
                     >
                       {target => (
                         <>
-                          <span class={styles.EditState} title={`Double-click a cell to edit. Changes are written to ${target().database}.${target().table}.`}>
+                          <span
+                            class={styles.EditState}
+                            ref={element => tooltip(element, () => `Double-click a cell to edit. Changes are written to ${target().database}.${target().table}.`)}
+                          >
                             <Pencil size={12} />
                             {target().table}
                           </span>
@@ -558,7 +566,7 @@ function QueryTab(props: QueryTabProps) {
                       <div class={styles.Stats}>
                         <For each={runStats()}>
                           {stat => (
-                            <span class={styles.Stat} title={stat.hint}>
+                            <span class={styles.Stat} ref={element => tooltip(element, () => stat.hint)}>
                               <span class={styles.StatLabel}>{stat.label}</span>
                               <span class={styles.StatValue}>{stat.value}</span>
                             </span>
@@ -577,11 +585,13 @@ function QueryTab(props: QueryTabProps) {
                         <div class={styles.Message} classList={{ [styles.Failed]: outcome.error !== null }}>
                           {outcome.error ? <CircleAlert size={14} /> : <CircleCheck size={14} />}
                           <span class={styles.Index}>{index() + 1}</span>
-                          <span class={styles.Sql} title={outcome.sql}>{outcome.sql.replace(/\s+/g, " ")}</span>
+                          <span class={styles.Sql} ref={element => tooltip(element, () => outcome.sql)}>
+                            {outcome.sql.replace(/\s+/g, " ")}
+                          </span>
                           <span class={styles.MessageText}>{outcomeSummary(outcome)}</span>
                           <span
                             class={styles.Duration}
-                            title={`Server ${formatDuration(outcome.executionMs)}, fetch ${formatDuration(outcome.fetchMs)}`}
+                            ref={element => tooltip(element, () => `Server ${formatDuration(outcome.executionMs)}, fetch ${formatDuration(outcome.fetchMs)}`)}
                           >
                             {formatDuration(outcome.executionMs)}
                             <Show when={outcome.fetchMs >= 1}>

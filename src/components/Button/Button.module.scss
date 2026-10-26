@@ -98,24 +98,3 @@
     background-color: var(--danger-soft);
   }
 }
-
-.Tooltip {
-  position: fixed;
-  z-index: var(--z-tooltip);
-  padding: 5px 8px;
-  border-radius: var(--radius-sm);
-  background-color: var(--surface-active);
-  box-shadow: var(--shadow-float);
-  color: var(--text-strong);
-  font-size: var(--font-sm);
-  font-weight: 400;
-  white-space: nowrap;
-  pointer-events: none;
-  animation: fade var(--duration) var(--ease);
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
-}
