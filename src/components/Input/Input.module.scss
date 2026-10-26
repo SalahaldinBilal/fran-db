@@ -60,4 +60,27 @@
     font-family: var(--font-mono);
     font-size: var(--font-sm);
   }
+
+  &.Clearing {
+    padding-right: 5px;
+  }
+}
+
+.Clear {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
 }

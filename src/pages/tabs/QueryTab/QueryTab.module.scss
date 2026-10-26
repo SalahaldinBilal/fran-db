@@ -181,24 +181,6 @@
   }
 }
 
-.ClearFilter {
-  all: unset;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-sm);
-  color: var(--text-faint);
-  cursor: pointer;
-  transition: var(--transition-colors);
-
-  &:hover {
-    background-color: var(--surface-hover);
-    color: var(--text-strong);
-  }
-}
-
 .EditState {
   display: flex;
   align-items: center;

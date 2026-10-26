@@ -192,6 +192,7 @@ function SchemaTree(props: { sessionId: string }) {
           type="search"
           value={filter()}
           onValue={setFilter}
+          clearable
           placeholder="Filter"
           before={<Search size={14} />}
         />

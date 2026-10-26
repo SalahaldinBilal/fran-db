@@ -1,7 +1,7 @@
 import styles from "./QueryTab.module.scss";
 import { Accessor, For, Match, Show, Switch, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js";
 import {
-  ArrowDownToLine, CircleAlert, CircleCheck, Lock, Pencil, Play, Plus, Save, Search, Square, StepForward, Table2, X,
+  ArrowDownToLine, CircleAlert, CircleCheck, Lock, Pencil, Play, Plus, Save, Search, Square, StepForward, Table2,
 } from "lucide-solid";
 import { databaseModule } from "@core/databases";
 import { safeInvoke } from "@core/helpers/safeInvoke";
@@ -477,24 +477,8 @@ function QueryTab(props: QueryTabProps) {
                       value={filterText()}
                       placeholder="Filter rows"
                       onValue={setFilterText}
-                      onKeyDown={event => {
-                        if (event.key === "Escape" && filterText() !== "") {
-                          event.stopPropagation();
-                          setFilterText("");
-                        }
-                      }}
+                      clearable
                       before={<Search size={12} />}
-                      after={
-                        <Show when={filterText() !== ""}>
-                          <button
-                            class={styles.ClearFilter}
-                            ref={element => tooltip(element, () => "Clear filter")}
-                            onClick={() => setFilterText("")}
-                          >
-                            <X size={12} />
-                          </button>
-                        </Show>
-                      }
                     />
                     <Show
                       when={entry().target()}
