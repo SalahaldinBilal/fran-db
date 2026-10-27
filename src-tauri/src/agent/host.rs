@@ -33,7 +33,6 @@ use crate::error::{AppError, AppResult, ErrorDetail};
 use crate::ssh::known_hosts::KnownHosts;
 use crate::vault::Vault;
 
-const CALL_TIMEOUT: Duration = Duration::from_secs(30);
 const APPROVAL_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 const IDLE_CLOSE_MS: u64 = 10 * 60 * 1000;
 const MAINTENANCE_EVERY: Duration = Duration::from_secs(60);
@@ -470,15 +469,19 @@ impl AgentHost {
         log: &CallLog,
     ) -> AppResult<Vec<StatementOutcome>> {
         let session = &live.session;
+        let timeout_secs = live.config.query_timeout_secs;
         let context = session.read_context(database).await?;
         let run = session.session.execute(context, sql, row_limit);
         tokio::pin!(run);
 
         let (outcome, message) = tokio::select! {
             result = &mut run => return result,
-            () = log.cancel.cancelled() => (Outcome::Cancelled, "The query was cancelled"),
-            () = session.closed.cancelled() => (Outcome::Cancelled, "The session was closed in Fran DB"),
-            () = tokio::time::sleep(CALL_TIMEOUT) => (Outcome::TimedOut, "The query ran longer than 30 seconds and was stopped"),
+            () = log.cancel.cancelled() => (Outcome::Cancelled, "The query was cancelled".to_string()),
+            () = session.closed.cancelled() => (Outcome::Cancelled, "The session was closed in Fran DB".to_string()),
+            () = tokio::time::sleep(Duration::from_secs(u64::from(timeout_secs))) => (
+                Outcome::TimedOut,
+                format!("The query ran longer than {timeout_secs} seconds and was stopped"),
+            ),
         };
         let _ = session.session.cancel(context).await;
         let _ = tokio::time::timeout(Duration::from_secs(5), run).await;

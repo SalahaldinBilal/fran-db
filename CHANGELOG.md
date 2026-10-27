@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - The row limit now stops the server from sending more rows than the limit, for every query, not only the ones Fran DB writes. Before, the whole result was sent and the extra rows thrown away, which made big tables slow to open.
+- Agent queries now time out after 60 seconds instead of 30, and the timeout can be changed on the Agents tab's Server page.
 - Query table puts the row limit in the SELECT itself. Changing the tab's limit updates the LIMIT too, as long as you haven't edited the query.
 
 ### Fixed

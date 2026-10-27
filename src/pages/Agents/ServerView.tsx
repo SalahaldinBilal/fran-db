@@ -126,6 +126,19 @@ function ServerView() {
               </div>
               <Toggle checked={agent.config.allowChanges} onChange={checked => agent.update({ allowChanges: checked })} />
             </div>
+            <div class={styles.Setting}>
+              <div class={styles.SettingText}>
+                <div class={styles.SettingName}>Query timeout</div>
+                <div class={styles.SettingHint}>A read an agent runs is cancelled on the server once it takes longer than this.</div>
+              </div>
+              <NumberSetting
+                value={agent.config.queryTimeoutSecs}
+                min={1}
+                max={3600}
+                suffix="seconds"
+                onCommit={queryTimeoutSecs => agent.update({ queryTimeoutSecs })}
+              />
+            </div>
           </div>
         </section>
 
