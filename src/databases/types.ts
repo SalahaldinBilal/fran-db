@@ -41,6 +41,8 @@ export type DatabaseModule<K extends DatabaseKind> = {
   quoteIdentifier: (name: string) => string,
   // A limit of 0 means no LIMIT clause.
   selectRowsSql: (table: string, limit: number) => string,
+  // Throws when the SQL can't be parsed.
+  formatSql: (sql: string) => string,
   dataTypes: readonly string[],
   isTextType: (dataType: string) => boolean,
   // Two columns can be joined by a foreign key when their types map to the same family.

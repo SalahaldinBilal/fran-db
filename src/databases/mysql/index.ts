@@ -1,7 +1,9 @@
 import { MySQL } from "@codemirror/lang-sql";
+import { mysql } from "sql-formatter";
 import { MysqlOptions } from "@core/types";
 import { DefaultKind } from "@core/helpers/defaultValues";
 import { DatabaseModule } from "../types";
+import { sqlFormatter } from "../shared/format";
 import MysqlConnectionForm from "./MysqlConnectionForm";
 
 function quoteIdentifier(name: string): string {
@@ -114,6 +116,7 @@ const mysqlModule: DatabaseModule<"mysql"> = {
   sqlDialect: MySQL,
   quoteIdentifier,
   selectRowsSql: (table, limit) => `SELECT * FROM ${quoteIdentifier(table)}${limit > 0 ? ` LIMIT ${limit}` : ""};`,
+  formatSql: sqlFormatter(mysql),
   dataTypes: [
     "INT", "INT UNSIGNED", "BIGINT", "BIGINT UNSIGNED", "TINYINT", "TINYINT(1)", "SMALLINT", "MEDIUMINT",
     "DECIMAL(10,2)", "FLOAT", "DOUBLE", "BIT(1)",

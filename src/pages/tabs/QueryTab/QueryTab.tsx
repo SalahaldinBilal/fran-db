@@ -5,6 +5,7 @@ import {
 import { Channel } from "@tauri-apps/api/core";
 import {
   ArrowDownToLine, CircleAlert, CircleCheck, Lock, Pencil, Play, Plus, Save, Search, Square, StepForward, Table2,
+  WandSparkles,
 } from "lucide-solid";
 import { databaseModule } from "@core/databases";
 import { safeInvoke } from "@core/helpers/safeInvoke";
@@ -236,6 +237,27 @@ function QueryTab(props: QueryTabProps) {
     }
   }
 
+  function formatSql() {
+    if (!editor) return;
+    const selection = editor.selection();
+    const partial = selection.text.trim() !== "";
+    const source = partial ? selection.text : editor.text();
+    if (!source.trim()) return;
+
+    let formatted: string;
+    try {
+      formatted = databaseModule(kind).formatSql(source);
+    } catch (error) {
+      pushError(error);
+      return;
+    }
+    if (formatted !== source) {
+      if (partial) editor.replace(selection.from, selection.to, formatted);
+      else editor.setText(formatted);
+    }
+    editor.focus();
+  }
+
   function changeRowLimit(limit: number) {
     const sql = workspace.setRowLimit(props.sessionId, props.database, props.tab.id, limit);
     if (sql !== null) editor?.setText(sql);
@@ -433,6 +455,10 @@ function QueryTab(props: QueryTabProps) {
         </Button>
         <div class={styles.Separator} />
         <Select size="sm" value={rowLimit()} items={ROW_LIMITS} onChange={changeRowLimit} />
+        <Button size="sm" onClick={formatSql} tooltip="Format the SQL, or only the selection (Shift+Alt+F)">
+          <WandSparkles size={14} />
+          Format
+        </Button>
         <Button size="sm" onClick={saveAsQuery} disabled={saving()} tooltip="Save as a new saved query (Ctrl+S)">
           <Save size={14} />
           Save as query
@@ -462,6 +488,7 @@ function QueryTab(props: QueryTabProps) {
             onRunCurrent={() => run("current")}
             onRunAll={() => run("all")}
             onSave={saveAsQuery}
+            onFormat={formatSql}
             onReady={api => {
               editor = api;
               scheduleSplit(api.text());

@@ -22,6 +22,7 @@ export type SqlEditorApi = {
   cursor: () => number,
   focus: () => void,
   setText: (text: string) => void,
+  replace: (from: number, to: number, text: string) => void,
 };
 
 export type SqlEditorProps = {
@@ -37,6 +38,7 @@ export type SqlEditorProps = {
   onRunCurrent?: () => void,
   onRunAll?: () => void,
   onSave?: () => void,
+  onFormat?: () => void,
   onReady?: (api: SqlEditorApi) => void,
 };
 
@@ -100,6 +102,7 @@ function SqlEditor(props: SqlEditorProps) {
       { key: "Shift-Mod-Enter", run: () => { props.onRunAll?.(); return true; } },
       { key: "F5", run: () => { props.onRunAll?.(); return true; } },
       { key: "Mod-s", run: () => { props.onSave?.(); return true; } },
+      { key: "Shift-Alt-f", run: () => { props.onFormat?.(); return true; } },
       { key: "Tab", run: acceptCompletion },
     ]));
 
@@ -164,6 +167,10 @@ function SqlEditor(props: SqlEditorProps) {
       cursor: () => editor.state.selection.main.head,
       focus: () => editor.focus(),
       setText: text => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } }),
+      replace: (from, to, text) => editor.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from, head: from + text.length },
+      }),
     });
   });
 

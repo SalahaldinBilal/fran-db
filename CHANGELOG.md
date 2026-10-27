@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Query tabs have a Format button (Shift+Alt+F) that tidies up the SQL, or only the selected part, in the connection's dialect.
 - Settings > Results has a default row limit that new query tabs start with. Changing the limit in a tab only affects that tab, and each tab remembers its own.
 
 ### Changed

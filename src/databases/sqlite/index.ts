@@ -1,6 +1,8 @@
 import { SQLite } from "@codemirror/lang-sql";
+import { sqlite } from "sql-formatter";
 import { DefaultKind } from "@core/helpers/defaultValues";
 import { DatabaseModule } from "../types";
+import { sqlFormatter } from "../shared/format";
 import SqliteConnectionForm from "./SqliteConnectionForm";
 
 function quoteIdentifier(name: string): string {
@@ -61,6 +63,7 @@ const sqliteModule: DatabaseModule<"sqlite"> = {
   sqlDialect: SQLite,
   quoteIdentifier,
   selectRowsSql: (table, limit) => `SELECT * FROM ${quoteIdentifier(table)}${limit > 0 ? ` LIMIT ${limit}` : ""};`,
+  formatSql: sqlFormatter(sqlite),
   dataTypes: [
     "INTEGER", "REAL", "TEXT", "BLOB", "NUMERIC",
     "BOOLEAN", "DATE", "DATETIME", "VARCHAR(255)", "DECIMAL(10,2)", "JSON",

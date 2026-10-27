@@ -1,7 +1,9 @@
 import { PostgreSQL } from "@codemirror/lang-sql";
+import { postgresql } from "sql-formatter";
 import { PostgresOptions } from "@core/types";
 import { DefaultKind } from "@core/helpers/defaultValues";
 import { DatabaseModule } from "../types";
+import { sqlFormatter } from "../shared/format";
 import PostgresConnectionForm from "./PostgresConnectionForm";
 
 function quoteIdentifier(name: string): string {
@@ -109,6 +111,7 @@ const postgresModule: DatabaseModule<"postgres"> = {
   sqlDialect: PostgreSQL,
   quoteIdentifier,
   selectRowsSql: (table, limit) => `SELECT * FROM ${quoteIdentifier(table)}${limit > 0 ? ` LIMIT ${limit}` : ""};`,
+  formatSql: sqlFormatter(postgresql),
   dataTypes: [
     "integer", "bigint", "smallint", "serial", "bigserial", "numeric(10,2)", "real", "double precision", "boolean",
     "text", "varchar(255)", "char(10)", "citext", "uuid", "bytea",
