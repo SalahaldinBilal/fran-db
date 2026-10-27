@@ -108,7 +108,7 @@ const postgresModule: DatabaseModule<"postgres"> = {
   defaultDatabase: options => options.defaultSchema.trim() || null,
   sqlDialect: PostgreSQL,
   quoteIdentifier,
-  selectRowsSql: table => `SELECT * FROM ${quoteIdentifier(table)};`,
+  selectRowsSql: (table, limit) => `SELECT * FROM ${quoteIdentifier(table)}${limit > 0 ? ` LIMIT ${limit}` : ""};`,
   dataTypes: [
     "integer", "bigint", "smallint", "serial", "bigserial", "numeric(10,2)", "real", "double precision", "boolean",
     "text", "varchar(255)", "char(10)", "citext", "uuid", "bytea",

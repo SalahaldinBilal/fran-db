@@ -1,6 +1,6 @@
 use super::splitter;
 use super::sqlgen::Dialect;
-use crate::db::classify::{ClassifiedStatement, Rules, Syntax, classify_statement};
+use crate::db::classify::{self as shared, ClassifiedStatement, Rules, Syntax, classify_statement};
 
 /// Functions that write, lock, signal other sessions, touch server files, or run SQL from a string.
 const DENIED_FUNCTIONS: [&str; 62] = [
@@ -83,6 +83,11 @@ fn rules(dialect: Dialect) -> Rules<'static> {
         denied_functions: &DENIED_FUNCTIONS,
         inspect: None,
     }
+}
+
+pub fn with_row_limit(sql: &str, dialect: Dialect, row_limit: usize) -> Option<String> {
+    let rules = rules(dialect);
+    shared::with_row_limit(sql, rules.syntax, row_limit, rules.queries, &["LIMIT", "FETCH"])
 }
 
 pub fn classify(sql: &str, dialect: Dialect) -> Vec<ClassifiedStatement> {

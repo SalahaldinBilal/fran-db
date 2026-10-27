@@ -1,5 +1,5 @@
 use super::splitter;
-use crate::db::classify::{ClassifiedStatement, Rules, StatementAccess, Syntax, Token, classify_statement};
+use crate::db::classify::{self as shared, ClassifiedStatement, Rules, StatementAccess, Syntax, Token, classify_statement};
 
 const DENIED_FUNCTIONS: [&str; 5] = ["LOAD_EXTENSION", "WRITEFILE", "READFILE", "EDIT", "FTS3_TOKENIZER"];
 
@@ -64,26 +64,32 @@ fn pragma_access(tokens: &[Token]) -> Option<StatementAccess> {
     Some(StatementAccess::change(format!("PRAGMA {} isn't one of the pragmas that only report", name.to_lowercase())))
 }
 
+const SYNTAX: Syntax = Syntax {
+    hash_comments: false,
+    dash_comment_needs_space: false,
+    nested_comments: false,
+    executable_comments: false,
+    dollar_quotes: false,
+    escape_strings: false,
+    backslash_escapes: false,
+    double_quote_strings: false,
+    refuse_backslash_in_double_quotes: false,
+    backtick_identifiers: true,
+    bracket_identifiers: true,
+};
+
 const RULES: Rules = Rules {
-    syntax: Syntax {
-        hash_comments: false,
-        dash_comment_needs_space: false,
-        nested_comments: false,
-        executable_comments: false,
-        dollar_quotes: false,
-        escape_strings: false,
-        backslash_escapes: false,
-        double_quote_strings: false,
-        refuse_backslash_in_double_quotes: false,
-        backtick_identifiers: true,
-        bracket_identifiers: true,
-    },
+    syntax: SYNTAX,
     queries: &["SELECT", "WITH", "VALUES"],
     explains: &["EXPLAIN"],
     shows: &[],
     denied_functions: &DENIED_FUNCTIONS,
     inspect: Some(pragma_access),
 };
+
+pub fn with_row_limit(sql: &str, row_limit: usize) -> Option<String> {
+    shared::with_row_limit(sql, SYNTAX, row_limit, RULES.queries, &["LIMIT"])
+}
 
 pub fn classify(sql: &str) -> Vec<ClassifiedStatement> {
     splitter::split(sql)

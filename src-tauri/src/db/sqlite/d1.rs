@@ -286,6 +286,7 @@ fn is_insert(sql: &str) -> bool {
 
 fn raw_result(sql: &str, entry: RawEntry, row_limit: usize) -> RawResult {
     let rows = entry.results.unwrap_or_default();
+    let row_limit = if row_limit == 0 { usize::MAX } else { row_limit };
     let truncated = rows.rows.len() > row_limit;
     let changes = entry.meta.changes;
     RawResult {

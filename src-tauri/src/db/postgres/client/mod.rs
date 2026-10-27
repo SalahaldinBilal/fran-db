@@ -327,6 +327,89 @@ impl PgConnection {
         }
     }
 
+    /// Runs one statement of user SQL. The server stops sending rows one past `row_limit`, 0 means no limit.
+    pub async fn run_statement(&mut self, sql: &str, row_limit: usize) -> Result<SimpleOutcome, PgError> {
+        let limit = if row_limit == 0 { usize::MAX } else { row_limit };
+        let max_rows = if row_limit == 0 { 0 } else { i32::try_from(row_limit.saturating_add(1)).unwrap_or(i32::MAX) };
+
+        self.write_buf.clear();
+        frontend::parse("", sql, std::iter::empty(), &mut self.write_buf).map_err(encoding)?;
+        frontend::bind(
+            "",
+            "",
+            std::iter::empty(),
+            std::iter::empty::<Option<&str>>(),
+            write_text,
+            [0i16],
+            &mut self.write_buf,
+        )
+        .map_err(|error| match error {
+            BindError::Conversion(error) => encoding(error),
+            BindError::Serialization(error) => encoding(error),
+        })?;
+        frontend::describe(b'P', "", &mut self.write_buf).map_err(encoding)?;
+        frontend::execute("", max_rows, &mut self.write_buf).map_err(encoding)?;
+        frontend::sync(&mut self.write_buf);
+        self.send().await?;
+
+        let mut outcome = SimpleOutcome::default();
+        let mut failure: Option<PgError> = None;
+
+        loop {
+            let message = self.receive().await?;
+            outcome.first_reply.get_or_insert_with(Instant::now);
+
+            match message {
+                Message::RowDescription(body) => outcome.results.push(RawResult {
+                    columns: columns(&body)?,
+                    ..RawResult::default()
+                }),
+                Message::DataRow(body) => {
+                    if let Some(result) = outcome.results.last_mut() {
+                        if result.rows.len() >= limit {
+                            result.truncated = true;
+                        } else {
+                            result.rows.push(row_values(&body)?);
+                        }
+                    }
+                }
+                Message::PortalSuspended => {
+                    if let Some(result) = outcome.results.last_mut() {
+                        result.truncated = true;
+                    }
+                }
+                Message::CommandComplete(body) => {
+                    outcome.tags.push(body.tag().map_err(PgError::transport)?.to_string());
+                }
+                Message::ErrorResponse(body) => {
+                    let error = report(body.fields())?;
+                    failure.get_or_insert(PgError::Server(error));
+                }
+                // The Sync sent with the statement is ignored during COPY IN, so it needs another.
+                Message::CopyInResponse(_) => {
+                    frontend::copy_fail("Fran DB doesn't send COPY data", &mut self.write_buf).map_err(encoding)?;
+                    frontend::sync(&mut self.write_buf);
+                    self.send().await?;
+                    failure.get_or_insert(PgError::Refused(
+                        "COPY FROM STDIN isn't supported here. Use INSERT, or COPY from a file on the server.".to_string(),
+                    ));
+                }
+                Message::CopyOutResponse(_) => {
+                    failure.get_or_insert(PgError::Refused(
+                        "COPY TO STDOUT isn't supported here, so its output was discarded. Use a SELECT instead.".to_string(),
+                    ));
+                }
+                Message::ReadyForQuery(_) => break,
+                _ => {}
+            }
+        }
+
+        match failure {
+            Some(error) => Err(error),
+            None => Ok(outcome),
+        }
+    }
+
     /// Runs one statement with the extended protocol, parameters and results both as text.
     pub async fn query_text(&mut self, sql: &str, params: &[Option<&str>]) -> Result<Vec<TextRow>, PgError> {
         self.write_buf.clear();

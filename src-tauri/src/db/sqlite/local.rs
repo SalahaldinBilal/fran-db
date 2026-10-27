@@ -157,6 +157,7 @@ fn run(conn: &Connection, sql: &str, params: &[SqlValue], row_limit: usize) -> r
 
     let total_before = conn.total_changes();
     let rowid_before = conn.last_insert_rowid();
+    let row_limit = if row_limit == 0 { usize::MAX } else { row_limit };
     let mut rows = Vec::new();
     let mut truncated = false;
 

@@ -35,7 +35,7 @@ pub fn param(value: &str) -> SqlValue {
 }
 
 pub async fn rows(conn: &dyn SqliteConnection, sql: &str, params: &[SqlValue]) -> AppResult<Vec<Row>> {
-    Ok(conn.query(sql, params, usize::MAX).await?.rows)
+    Ok(conn.query(sql, params, 0).await?.rows)
 }
 
 fn master(schema: &str) -> String {

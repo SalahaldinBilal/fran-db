@@ -250,6 +250,39 @@ fn word_end(chars: &[char], start: usize) -> usize {
     index
 }
 
+/// Adds `LIMIT row_limit + 1` to a read whose top level has none of `own_limits`, so the server plans for few rows.
+pub fn with_row_limit(sql: &str, syntax: Syntax, row_limit: usize, reads: &[&str], own_limits: &[&str]) -> Option<String> {
+    if row_limit == 0 {
+        return None;
+    }
+    let tokens = tokenize(sql, syntax).ok()?;
+    let Some(Token::Word(first)) = tokens.first() else {
+        return None;
+    };
+    if !reads.contains(&first.as_str()) {
+        return None;
+    }
+
+    let mut depth = 0usize;
+    for (index, token) in tokens.iter().enumerate() {
+        match token {
+            Token::Symbol('(') => depth += 1,
+            Token::Symbol(')') => depth = depth.saturating_sub(1),
+            Token::Symbol(';') | Token::Executable => return None,
+            Token::Word(word) if depth == 0 => {
+                let writes = matches!(word.as_str(), "INSERT" | "UPDATE" | "DELETE" | "MERGE" | "INTO")
+                    || (word == "REPLACE" && tokens.get(index + 1) != Some(&Token::Symbol('(')));
+                if writes || own_limits.contains(&word.as_str()) {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Some(format!("{sql}\nLIMIT {}", row_limit.saturating_add(1)))
+}
+
 pub fn classify_statement(sql: &str, rules: &Rules) -> StatementAccess {
     let tokens = match tokenize(sql, rules.syntax) {
         Ok(tokens) => tokens,
@@ -377,6 +410,41 @@ mod tests {
         assert!(!read("set default_transaction_read_only = off"));
         assert!(!read("select 'unclosed"));
         assert!(!read(""));
+    }
+
+    fn limited(sql: &str) -> Option<String> {
+        with_row_limit(sql, RULES.syntax, 100, RULES.queries, &["LIMIT", "FETCH"])
+    }
+
+    #[test]
+    fn adds_a_limit_to_reads_without_one() {
+        assert_eq!(limited("select * from t").as_deref(), Some("select * from t\nLIMIT 101"));
+        assert_eq!(
+            limited("with x as (select 1 limit 5) select * from x order by 1 -- note").as_deref(),
+            Some("with x as (select 1 limit 5) select * from x order by 1 -- note\nLIMIT 101")
+        );
+        assert!(limited("select * from t offset 10").is_some());
+        assert!(limited("select replace(name, 'a', 'b') from t").is_some());
+        assert!(limited("select * from t where id in (select id from u limit 3)").is_some());
+        assert!(limited("select $x$ limit $x$ from t").is_some());
+        assert!(limited("table t").is_some());
+        assert!(limited("values (1), (2)").is_some());
+    }
+
+    #[test]
+    fn leaves_limited_and_writing_statements_alone() {
+        assert_eq!(limited("select * from t limit 5"), None);
+        assert_eq!(limited("select * from t limit all"), None);
+        assert_eq!(limited("select * from t fetch first 5 rows only"), None);
+        assert_eq!(limited("select 1 union select 2 limit 1"), None);
+        assert_eq!(limited("with x as (select 1) delete from t"), None);
+        assert_eq!(limited("select * into copy from t"), None);
+        assert_eq!(limited("select * from t for update"), None);
+        assert_eq!(limited("insert into t select * from u"), None);
+        assert_eq!(limited("explain select * from t"), None);
+        assert_eq!(limited("(select 1) union (select 2)"), None);
+        assert_eq!(limited("select 'unclosed"), None);
+        assert_eq!(with_row_limit("select 1", RULES.syntax, 0, RULES.queries, &["LIMIT"]), None);
     }
 
     #[test]

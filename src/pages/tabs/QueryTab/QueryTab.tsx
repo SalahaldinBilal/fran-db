@@ -30,15 +30,7 @@ import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
 import EmptyState from "@core/components/EmptyState/EmptyState";
 import { tooltip } from "@core/components/Tooltip/Tooltip";
-
-const ROW_LIMITS = [
-  { value: 100, label: "Limit 100" },
-  { value: 500, label: "Limit 500" },
-  { value: 1000, label: "Limit 1,000" },
-  { value: 5000, label: "Limit 5,000" },
-  { value: 10000, label: "Limit 10,000" },
-  { value: 0, label: "No limit" },
-];
+import { ROW_LIMITS } from "@core/states/settingsState";
 
 export type QueryTabProps = {
   sessionId: string,
@@ -94,7 +86,7 @@ function QueryTab(props: QueryTabProps) {
   const [running, setRunning] = createSignal(false);
   const [startedAt, setStartedAt] = createSignal(0);
   const [now, setNow] = createSignal(Date.now());
-  const [rowLimit, setRowLimit] = createSignal(1000);
+  const rowLimit = createMemo(() => props.tab.rowLimit);
   const [outcomes, setOutcomes] = createSignal<StatementOutcome[]>([]);
   const [runError, setRunError] = createSignal<unknown>(null);
   const [view, setView] = createSignal<View>("messages");
@@ -242,6 +234,11 @@ function QueryTab(props: QueryTabProps) {
     } finally {
       setSaving(false);
     }
+  }
+
+  function changeRowLimit(limit: number) {
+    const sql = workspace.setRowLimit(props.sessionId, props.database, props.tab.id, limit);
+    if (sql !== null) editor?.setText(sql);
   }
 
   async function ensureContext(): Promise<number> {
@@ -435,7 +432,7 @@ function QueryTab(props: QueryTabProps) {
           Stop
         </Button>
         <div class={styles.Separator} />
-        <Select size="sm" value={rowLimit()} items={ROW_LIMITS} onChange={setRowLimit} />
+        <Select size="sm" value={rowLimit()} items={ROW_LIMITS} onChange={changeRowLimit} />
         <Button size="sm" onClick={saveAsQuery} disabled={saving()} tooltip="Save as a new saved query (Ctrl+S)">
           <Save size={14} />
           Save as query

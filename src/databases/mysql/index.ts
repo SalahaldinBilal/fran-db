@@ -113,7 +113,7 @@ const mysqlModule: DatabaseModule<"mysql"> = {
   defaultDatabase: options => options.defaultSchema.trim() || null,
   sqlDialect: MySQL,
   quoteIdentifier,
-  selectRowsSql: table => `SELECT * FROM ${quoteIdentifier(table)};`,
+  selectRowsSql: (table, limit) => `SELECT * FROM ${quoteIdentifier(table)}${limit > 0 ? ` LIMIT ${limit}` : ""};`,
   dataTypes: [
     "INT", "INT UNSIGNED", "BIGINT", "BIGINT UNSIGNED", "TINYINT", "TINYINT(1)", "SMALLINT", "MEDIUMINT",
     "DECIMAL(10,2)", "FLOAT", "DOUBLE", "BIT(1)",

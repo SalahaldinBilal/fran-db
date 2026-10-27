@@ -520,8 +520,9 @@ impl DatabaseSession for PostgresSession {
         let mut lost_connection = false;
 
         for statement in statements {
+            let limited = classify::with_row_limit(&statement.text, self.dialect(), row_limit);
             let started = Instant::now();
-            let result = live.conn.simple_query(&statement.text, row_limit).await;
+            let result = live.conn.run_statement(limited.as_deref().unwrap_or(&statement.text), row_limit).await;
             let finished = Instant::now();
             let notices = live.conn.take_notices();
 

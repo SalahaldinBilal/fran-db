@@ -60,7 +60,7 @@ const sqliteModule: DatabaseModule<"sqlite"> = {
   defaultDatabase: () => "main",
   sqlDialect: SQLite,
   quoteIdentifier,
-  selectRowsSql: table => `SELECT * FROM ${quoteIdentifier(table)};`,
+  selectRowsSql: (table, limit) => `SELECT * FROM ${quoteIdentifier(table)}${limit > 0 ? ` LIMIT ${limit}` : ""};`,
   dataTypes: [
     "INTEGER", "REAL", "TEXT", "BLOB", "NUMERIC",
     "BOOLEAN", "DATE", "DATETIME", "VARCHAR(255)", "DECIMAL(10,2)", "JSON",

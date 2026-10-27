@@ -284,8 +284,9 @@ impl DatabaseSession for SqliteSession {
         let conn = self.context(id)?;
 
         for statement in splitter::split(sql) {
+            let limited = classify::with_row_limit(&statement.text, row_limit);
             let started = Instant::now();
-            let result = conn.query(&statement.text, &[], row_limit).await;
+            let result = conn.query(limited.as_deref().unwrap_or(&statement.text), &[], row_limit).await;
             let first_reply = Instant::now();
 
             match result {

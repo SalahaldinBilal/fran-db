@@ -1,13 +1,14 @@
 import styles from "./SettingsModal.module.scss";
 import { createMemo, Match, Show, Switch } from "solid-js";
 import { CircleAlert, Download, RefreshCw, RotateCw } from "lucide-solid";
-import useSettingsState, { CellEditMode } from "@core/states/settingsState";
+import useSettingsState, { CellEditMode, ROW_LIMITS } from "@core/states/settingsState";
 import useUpdaterState from "@core/states/updaterState";
 import { errorMessage } from "@core/helpers/errors";
 import Modal from "../Modal/Modal";
 import Button from "../Button/Button";
 import SegmentedControl from "../SegmentedControl/SegmentedControl";
 import Toggle from "../Switch/Switch";
+import Select from "../Select/Select";
 import ReleaseNotes from "../ReleaseNotes/ReleaseNotes";
 import AgentSettings from "./AgentSettings";
 
@@ -157,6 +158,20 @@ function SettingsModal(props: SettingsModalProps) {
             <Toggle
               checked={settings.runTableQueryOnOpen}
               onChange={checked => update({ runTableQueryOnOpen: checked })}
+            />
+          </div>
+          <div class={styles.Setting}>
+            <div class={styles.Text}>
+              <div class={styles.Name}>Default row limit</div>
+              <div class={styles.Hint}>
+                The limit new query tabs start with. Each tab can change its own. The SELECT made for a table includes it as LIMIT.
+              </div>
+            </div>
+            <Select
+              size="sm"
+              value={settings.defaultRowLimit}
+              items={ROW_LIMITS}
+              onChange={limit => update({ defaultRowLimit: limit })}
             />
           </div>
         </section>

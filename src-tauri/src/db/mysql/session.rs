@@ -615,6 +615,18 @@ impl DatabaseSession for MysqlSession {
         let network_ms = live.conn.ping().await.ok().map(|()| milliseconds(ping_started.elapsed()));
         let without_network = |ms: f64| (ms - network_ms.unwrap_or(0.0)).max(0.0);
 
+        // One row past the limit, so the reader can tell there were more.
+        let select_limit = match row_limit {
+            0 => "DEFAULT".to_string(),
+            limit => limit.saturating_add(1).to_string(),
+        };
+        if let Err(error) = live.conn.query_drop(format!("SET SESSION sql_select_limit = {select_limit}")).await {
+            if !is_server_error(&error) {
+                *slot = None;
+            }
+            return Err(db_error(error));
+        }
+
         let mut lost_connection = false;
 
         for statement in statements {

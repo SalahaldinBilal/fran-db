@@ -21,6 +21,7 @@ export type SqlEditorApi = {
   selection: () => { from: number, to: number, text: string },
   cursor: () => number,
   focus: () => void,
+  setText: (text: string) => void,
 };
 
 export type SqlEditorProps = {
@@ -162,6 +163,7 @@ function SqlEditor(props: SqlEditorProps) {
       },
       cursor: () => editor.state.selection.main.head,
       focus: () => editor.focus(),
+      setText: text => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } }),
     });
   });
 

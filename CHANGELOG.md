@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Settings > Results has a default row limit that new query tabs start with. Changing the limit in a tab only affects that tab, and each tab remembers its own.
+
+### Changed
+
+- The row limit now stops the server from sending more rows than the limit, for every query, not only the ones Fran DB writes. Before, the whole result was sent and the extra rows thrown away, which made big tables slow to open.
+- Query table puts the row limit in the SELECT itself. Changing the tab's limit updates the LIMIT too, as long as you haven't edited the query.
+
+### Fixed
+
+- "No limit" returned no rows on SQLite and Cloudflare D1.
+
 ## [0.1.3] - 2026-10-26
 
 ### Added

@@ -8,7 +8,7 @@ import {
   CatalogColumn, ConnectionProfile, DatabaseInfo, DatabaseKind, ObjectInfo, ObjectKind, SavedQuery, SessionInfo,
 } from "@core/types";
 import useToastState from "./toastState";
-import useSettingsState from "./settingsState";
+import useSettingsState, { isRowLimit } from "./settingsState";
 
 export const HOME_TAB_ID = "home";
 export const AGENTS_TAB_ID = "agents";
@@ -23,6 +23,8 @@ export type QueryTabState = {
   kind: "query",
   title: string,
   initialSql: string,
+  rowLimit: number,
+  table?: string,
   runOnOpen?: boolean,
 };
 
@@ -80,7 +82,7 @@ const PERSIST_DELAY_MS = 400;
 const PERSISTED_VERSION = 2;
 
 type PersistedTab =
-  | { kind: "query", title: string, sql: string }
+  | { kind: "query", title: string, sql: string, rowLimit?: number, table?: string }
   | { kind: "data", title: string, table: string }
   | { kind: "structure", title: string, objectName: string, objectKind: ObjectKind, objectSignature?: string | null }
   | { kind: "design", title: string, table: string | null };
@@ -135,13 +137,28 @@ function sameSql(a: string, b: string): boolean {
   return a.trim().replace(/\s+/g, " ") === b.trim().replace(/\s+/g, " ");
 }
 
-function restoreTab(saved: PersistedTab, selectRowsSql: (table: string) => string): DatabaseTab | null {
+function restoreTab(saved: PersistedTab, selectRowsSql: (table: string, limit: number) => string): DatabaseTab | null {
   const id = generateId();
+  const defaultLimit = useSettingsState.settings.defaultRowLimit;
   switch (saved.kind) {
     case "query":
-      return { id, kind: "query", title: saved.title, initialSql: saved.sql };
+      return {
+        id,
+        kind: "query",
+        title: saved.title,
+        initialSql: saved.sql,
+        rowLimit: isRowLimit(saved.rowLimit) ? saved.rowLimit : defaultLimit,
+        table: typeof saved.table === "string" ? saved.table : undefined,
+      };
     case "data":
-      return { id, kind: "query", title: saved.title, initialSql: selectRowsSql(saved.table) };
+      return {
+        id,
+        kind: "query",
+        title: saved.title,
+        initialSql: selectRowsSql(saved.table, defaultLimit),
+        rowLimit: defaultLimit,
+        table: saved.table,
+      };
     case "structure":
       return {
         id,
@@ -189,7 +206,7 @@ function useWorkspaceStateInner() {
       const tabs: PersistedTab[] = scope.tabs.map(tab => {
         switch (tab.kind) {
           case "query":
-            return { kind: "query", title: tab.title, sql: queryText(tab) };
+            return { kind: "query", title: tab.title, sql: queryText(tab), rowLimit: tab.rowLimit, table: tab.table };
           case "structure":
             return {
               kind: "structure",
@@ -508,7 +525,8 @@ function useWorkspaceStateInner() {
   function newQueryTab(sessionId: string, database: string, initialSql = "") {
     if (!store.sessions[sessionId]) return;
     const title = nextQueryTitle(sessionId, database);
-    openTab(sessionId, database, { id: generateId(), kind: "query", title, initialSql });
+    const rowLimit = useSettingsState.settings.defaultRowLimit;
+    openTab(sessionId, database, { id: generateId(), kind: "query", title, initialSql, rowLimit });
   }
 
   function focusExisting(sessionId: string, database: string, matches: (tab: DatabaseTab) => boolean): boolean {
@@ -533,7 +551,17 @@ function useWorkspaceStateInner() {
       return;
     }
 
-    openTab(sessionId, database, { id: generateId(), kind: "query", title: query.name, initialSql: query.sql });
+    openTab(sessionId, database, {
+      id: generateId(),
+      kind: "query",
+      title: query.name,
+      initialSql: query.sql,
+      rowLimit: useSettingsState.settings.defaultRowLimit,
+    });
+  }
+
+  function isTableSelect(kind: DatabaseKind, tab: QueryTabState, text: string): boolean {
+    return tab.table !== undefined && sameSql(text, databaseModule(kind).selectRowsSql(tab.table, tab.rowLimit));
   }
 
   // A tab whose text is still the generated SELECT is reused, edited ones are left alone.
@@ -541,15 +569,34 @@ function useWorkspaceStateInner() {
     const session = store.sessions[sessionId];
     if (!session) return;
 
-    const sql = databaseModule(session.info.kind).selectRowsSql(table);
-    if (focusExisting(sessionId, database, tab => tab.kind === "query" && sameSql(queryText(tab), sql))) return;
+    const kind = session.info.kind;
+    const matches = (tab: DatabaseTab) => tab.kind === "query" && tab.table === table && isTableSelect(kind, tab, queryText(tab));
+    if (focusExisting(sessionId, database, matches)) return;
+
+    const rowLimit = useSettingsState.settings.defaultRowLimit;
     openTab(sessionId, database, {
       id: generateId(),
       kind: "query",
       title: table,
-      initialSql: sql,
+      initialSql: databaseModule(kind).selectRowsSql(table, rowLimit),
+      rowLimit,
+      table,
       runOnOpen: useSettingsState.settings.runTableQueryOnOpen,
     });
+  }
+
+  // Returns the table SELECT rewritten for the new limit, or null when the text was edited by hand.
+  function setRowLimit(sessionId: string, database: string, tabId: string, rowLimit: number): string | null {
+    const session = store.sessions[sessionId];
+    const tab = session?.scopes[database]?.tabs.find(candidate => candidate.id === tabId);
+    if (!session || tab?.kind !== "query") return null;
+
+    const regenerate = isTableSelect(session.info.kind, tab, queryText(tab));
+    updateTab(sessionId, database, tabId, current => {
+      if (current.kind === "query") current.rowLimit = rowLimit;
+    });
+    if (!regenerate || tab.table === undefined) return null;
+    return databaseModule(session.info.kind).selectRowsSql(tab.table, rowLimit);
   }
 
   function clearRunOnOpen(sessionId: string, database: string, tabId: string) {
@@ -642,6 +689,7 @@ function useWorkspaceStateInner() {
     newQueryTab,
     openSavedQuery,
     queryTable,
+    setRowLimit,
     clearRunOnOpen,
     openStructure,
     openDesigner,

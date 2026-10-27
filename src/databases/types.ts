@@ -39,7 +39,8 @@ export type DatabaseModule<K extends DatabaseKind> = {
   defaultDatabase: (options: OptionsByKind[K]) => string | null,
   sqlDialect: SQLDialect,
   quoteIdentifier: (name: string) => string,
-  selectRowsSql: (table: string) => string,
+  // A limit of 0 means no LIMIT clause.
+  selectRowsSql: (table: string, limit: number) => string,
   dataTypes: readonly string[],
   isTextType: (dataType: string) => boolean,
   // Two columns can be joined by a foreign key when their types map to the same family.

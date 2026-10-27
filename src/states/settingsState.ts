@@ -8,14 +8,29 @@ export type CellEditMode = "viewer" | "inline";
 export type AppSettings = {
   cellEditMode: CellEditMode,
   runTableQueryOnOpen: boolean,
+  defaultRowLimit: number,
   colorFill: boolean,
 };
 
 const CELL_EDIT_MODES: readonly CellEditMode[] = ["viewer", "inline"];
 
+export const ROW_LIMITS: readonly { value: number, label: string }[] = [
+  { value: 100, label: "Limit 100" },
+  { value: 500, label: "Limit 500" },
+  { value: 1000, label: "Limit 1,000" },
+  { value: 5000, label: "Limit 5,000" },
+  { value: 10000, label: "Limit 10,000" },
+  { value: 0, label: "No limit" },
+];
+
+export function isRowLimit(value: unknown): value is number {
+  return ROW_LIMITS.some(limit => limit.value === value);
+}
+
 export const DEFAULT_SETTINGS: AppSettings = {
   cellEditMode: "viewer",
   runTableQueryOnOpen: true,
+  defaultRowLimit: 1000,
   colorFill: true,
 };
 
@@ -29,6 +44,7 @@ function fromStored(stored: unknown): AppSettings {
     runTableQueryOnOpen: typeof values.runTableQueryOnOpen === "boolean"
       ? values.runTableQueryOnOpen
       : DEFAULT_SETTINGS.runTableQueryOnOpen,
+    defaultRowLimit: isRowLimit(values.defaultRowLimit) ? values.defaultRowLimit : DEFAULT_SETTINGS.defaultRowLimit,
     colorFill: typeof values.colorFill === "boolean" ? values.colorFill : DEFAULT_SETTINGS.colorFill,
   };
 }
