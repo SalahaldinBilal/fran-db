@@ -1,0 +1,214 @@
+.Settings {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--bg);
+}
+
+.Nav {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 4px;
+  width: 230px;
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+  background-color: var(--surface);
+}
+
+.NavItem {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  font-size: var(--font-lg);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-strong);
+  }
+
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  &.Active {
+    background-color: var(--surface-active);
+    color: var(--text-strong);
+
+    svg {
+      color: var(--accent);
+    }
+  }
+}
+
+.Mark {
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-radius: 50%;
+  background-color: var(--accent);
+}
+
+.NavNote {
+  margin-top: auto;
+  padding: 0 12px;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+}
+
+.Content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.Wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 22px 28px 40px;
+}
+
+.PageHead {
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--font-xl);
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+
+  p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+  }
+}
+
+.Section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+
+  h3 {
+    margin: 0;
+    color: var(--text-faint);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+}
+
+.Group {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-sunken);
+}
+
+.Setting {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 16px;
+
+  & + & {
+    border-top: 1px solid var(--border);
+  }
+}
+
+.Text {
+  flex: 1;
+  min-width: 0;
+}
+
+.Name {
+  color: var(--text-strong);
+  font-size: var(--font-md);
+  font-weight: 550;
+}
+
+.Hint {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+}
+
+.HintError {
+  color: var(--danger);
+}
+
+.Preview {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  line-height: 1.6;
+  tab-size: 4;
+  white-space: pre;
+}
+
+.Progress {
+  position: relative;
+  height: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 2px;
+  background-color: var(--surface-active);
+}
+
+.ProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--accent);
+  transition: width var(--duration) var(--ease);
+
+  &.Indeterminate {
+    position: absolute;
+    animation: sweep 1.2s var(--ease) infinite;
+  }
+}
+
+@keyframes sweep {
+  from {
+    left: -30%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+.Error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 10px;
+  border: 1px solid rgb(from var(--danger) r g b / 40%);
+  border-radius: var(--radius-md);
+  background-color: var(--danger-soft);
+  font-size: var(--font-sm);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--danger);
+  }
+}

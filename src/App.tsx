@@ -1,9 +1,8 @@
 import styles from "./App.module.scss";
-import { For, Show, createMemo, createSignal, onMount } from "solid-js";
+import { For, Show, createMemo, onMount } from "solid-js";
 import { Bot, Database, House, Settings, X } from "lucide-solid";
 import TabStrip, { TabStripItem } from "./components/TabStrip/TabStrip";
 import Button from "./components/Button/Button";
-import SettingsModal from "./components/SettingsModal/SettingsModal";
 import Toasts from "./components/Toasts/Toasts";
 import ContextMenuHost from "./components/ContextMenu/ContextMenuHost";
 import TooltipHost from "./components/Tooltip/TooltipHost";
@@ -14,7 +13,8 @@ import useAgentState from "./states/agentState";
 import Home from "./pages/Home/Home";
 import Workspace from "./pages/Workspace/Workspace";
 import Agents from "./pages/Agents/Agents";
-import useWorkspaceState, { AGENTS_TAB_ID, HOME_TAB_ID } from "./states/workspaceState";
+import SettingsPage from "./pages/Settings/Settings";
+import useWorkspaceState, { AGENTS_TAB_ID, HOME_TAB_ID, SETTINGS_TAB_ID } from "./states/workspaceState";
 import useContextMenuState from "./states/contextMenuState";
 import useConnectionsState from "./states/connectionsState";
 import useVaultState from "./states/vaultState";
@@ -33,9 +33,9 @@ function App() {
   const workspace = useWorkspaceState;
   const agent = useAgentState;
   const { openContextMenu } = useContextMenuState;
-  const [settingsOpen, setSettingsOpen] = createSignal(false);
 
   const agentsOpen = createMemo(() => workspace.store.globalTabs.some(tab => tab.kind === "agents"));
+  const settingsOpen = createMemo(() => workspace.store.globalTabs.some(tab => tab.kind === "settings"));
   const pendingChanges = createMemo(() => agent.approvals.length);
   const agentsTooltip = createMemo(() => (pendingChanges() > 0 ? `Agents, ${plural(pendingChanges(), "change")} waiting` : "Agents"));
 
@@ -46,6 +46,9 @@ function App() {
       }
       if (tab.kind === "agents") {
         return { id: tab.id, label: "Agents", icon: Bot, closable: true, movable: true };
+      }
+      if (tab.kind === "settings") {
+        return { id: tab.id, label: "Settings", icon: Settings, closable: true, movable: true };
       }
 
       const session = workspace.store.sessions[tab.sessionId];
@@ -106,7 +109,11 @@ function App() {
         onContextMenu={(event, id) => {
           if (id === HOME_TAB_ID) return;
           openContextMenu(event, [
-            { label: id === AGENTS_TAB_ID ? "Close" : "Disconnect", icon: X, onSelect: () => workspace.closeGlobalTab(id) },
+            {
+              label: id === AGENTS_TAB_ID || id === SETTINGS_TAB_ID ? "Close" : "Disconnect",
+              icon: X,
+              onSelect: () => workspace.closeGlobalTab(id),
+            },
           ]);
         }}
         dragRegion
@@ -131,7 +138,13 @@ function App() {
                   <span class={styles.Pending}>{pendingChanges()}</span>
                 </Show>
               </Button>
-              <Button icon size="sm" tooltip="Settings" onClick={() => setSettingsOpen(true)}>
+              <Button
+                icon
+                size="sm"
+                active={workspace.store.activeGlobalTabId === SETTINGS_TAB_ID}
+                tooltip="Settings"
+                onClick={workspace.openSettings}
+              >
                 <Settings size={16} />
               </Button>
             </div>
@@ -157,15 +170,12 @@ function App() {
             <Agents />
           </div>
         </Show>
+        <Show when={settingsOpen()}>
+          <div class={styles.Page} classList={{ [styles.Hidden]: workspace.store.activeGlobalTabId !== SETTINGS_TAB_ID }}>
+            <SettingsPage onOpenAgents={openAgents} />
+          </div>
+        </Show>
       </main>
-      <SettingsModal
-        show={settingsOpen()}
-        onClose={() => setSettingsOpen(false)}
-        onOpenAgents={() => {
-          setSettingsOpen(false);
-          openAgents();
-        }}
-      />
       <AgentApprovalModal />
       <Prompts />
       <PortForwardModal />

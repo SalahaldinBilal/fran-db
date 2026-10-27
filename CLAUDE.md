@@ -93,7 +93,7 @@ No frontend tests or linters are configured.
 
 All in the Tauri app data dir: `connections.json` (profiles, no secrets), `known_hosts.json`, `saved_queries.json`, `tab_state.json`, `settings.json`, `secrets.vault`, `agent.json`, `agent_history/`.
 
-App settings belong to the frontend (`settingsState.ts` owns the shape and defaults, Rust only stores the JSON). Unknown or missing keys fall back to the defaults in `fromStored`. The settings window opens from the gear at the right of the top tab bar.
+App settings belong to the frontend (`settingsState.ts` owns the shape and defaults, Rust only stores the JSON). Unknown or missing keys fall back to the defaults in `fromStored`. Settings is a global tab (`pages/Settings/`), opened from the gear at the right of the top tab bar. Its side menu lists one page per area (`sections` in `Settings.tsx`), each built from `SettingsPage`, `SettingGroup` and `SettingRow` in `SettingsLayout.tsx`.
 
 Open tabs persist per connection in `tab_state.json`. The frontend owns the shape (`PersistedSession` in `workspaceState.ts`, versioned) and writes it about 400ms after any tab change or keystroke. Live query text lives in `queryTexts`, outside the store.
 

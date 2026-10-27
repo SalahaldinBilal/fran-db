@@ -8,11 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Query tabs have a Format button (Shift+Alt+F) that tidies up the SQL, or only the selected part, in the connection's dialect.
+- Query tabs have a Format button (Shift+Alt+F) that tidies up the SQL, or only the selected part, in the connection's dialect. Settings > Formatting sets the letter case of keywords, functions and data types, the indent, where AND and OR go, how long an expression stays on one line and the blank lines between statements, with a live preview.
 - Settings > Results has a default row limit that new query tabs start with. Changing the limit in a tab only affects that tab, and each tab remembers its own.
 
 ### Changed
 
+- Settings open in their own tab instead of a dialog.
 - The row limit now stops the server from sending more rows than the limit, for every query, not only the ones Fran DB writes. Before, the whole result was sent and the extra rows thrown away, which made big tables slow to open.
 - Agent queries now time out after 60 seconds instead of 30, and the timeout can be changed on the Agents tab's Server page.
 - Query table puts the row limit in the SELECT itself. Changing the tab's limit updates the LIMIT too, as long as you haven't edited the query.

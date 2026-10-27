@@ -31,7 +31,7 @@ import Select from "@core/components/Select/Select";
 import Spinner from "@core/components/Spinner/Spinner";
 import EmptyState from "@core/components/EmptyState/EmptyState";
 import { tooltip } from "@core/components/Tooltip/Tooltip";
-import { ROW_LIMITS } from "@core/states/settingsState";
+import useSettingsState, { ROW_LIMITS } from "@core/states/settingsState";
 
 export type QueryTabProps = {
   sessionId: string,
@@ -246,7 +246,7 @@ function QueryTab(props: QueryTabProps) {
 
     let formatted: string;
     try {
-      formatted = databaseModule(kind).formatSql(source);
+      formatted = databaseModule(kind).formatSql(source, useSettingsState.settings.format);
     } catch (error) {
       pushError(error);
       return;

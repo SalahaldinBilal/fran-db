@@ -12,10 +12,12 @@ import useSettingsState, { isRowLimit } from "./settingsState";
 
 export const HOME_TAB_ID = "home";
 export const AGENTS_TAB_ID = "agents";
+export const SETTINGS_TAB_ID = "settings";
 
 export type GlobalTab =
   | { id: typeof HOME_TAB_ID, kind: "home" }
   | { id: typeof AGENTS_TAB_ID, kind: "agents" }
+  | { id: typeof SETTINGS_TAB_ID, kind: "settings" }
   | { id: string, kind: "session", sessionId: string };
 
 export type QueryTabState = {
@@ -385,6 +387,13 @@ function useWorkspaceStateInner() {
     }));
   }
 
+  function openSettings() {
+    setStore(produce(state => {
+      if (!state.globalTabs.some(tab => tab.kind === "settings")) state.globalTabs.push({ id: SETTINGS_TAB_ID, kind: "settings" });
+      state.activeGlobalTabId = SETTINGS_TAB_ID;
+    }));
+  }
+
   function removeGlobalTab(id: string) {
     setStore(produce(state => {
       const index = state.globalTabs.findIndex(tab => tab.id === id);
@@ -398,7 +407,7 @@ function useWorkspaceStateInner() {
   }
 
   function closeGlobalTab(id: string) {
-    if (id === AGENTS_TAB_ID) removeGlobalTab(id);
+    if (id === AGENTS_TAB_ID || id === SETTINGS_TAB_ID) removeGlobalTab(id);
     else closeSession(id);
   }
 
@@ -675,6 +684,7 @@ function useWorkspaceStateInner() {
     setQueryText,
     activateGlobalTab,
     openAgents,
+    openSettings,
     closeGlobalTab,
     openConnection,
     switchCatalog,

@@ -2,6 +2,7 @@ import { Component } from "solid-js";
 import { SQLDialect } from "@codemirror/lang-sql";
 import { DatabaseKind, IndexKind, OptionsByKind } from "@core/types";
 import { DefaultKind } from "@core/helpers/defaultValues";
+import type { SqlFormatter } from "./shared/format";
 
 // undefined means untouched, null means remove from the vault on save.
 export type PendingSecret = string | null | undefined;
@@ -42,7 +43,7 @@ export type DatabaseModule<K extends DatabaseKind> = {
   // A limit of 0 means no LIMIT clause.
   selectRowsSql: (table: string, limit: number) => string,
   // Throws when the SQL can't be parsed.
-  formatSql: (sql: string) => string,
+  formatSql: SqlFormatter,
   dataTypes: readonly string[],
   isTextType: (dataType: string) => boolean,
   // Two columns can be joined by a foreign key when their types map to the same family.

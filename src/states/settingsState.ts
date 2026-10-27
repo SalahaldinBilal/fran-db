@@ -5,14 +5,44 @@ import useToastState from "./toastState";
 
 export type CellEditMode = "viewer" | "inline";
 
+export type LetterCase = "upper" | "lower" | "preserve";
+export type FormatIndent = "spaces2" | "spaces4" | "tabs";
+export type OperatorPlacement = "before" | "after";
+
+export type FormatSettings = {
+  keywordCase: LetterCase,
+  functionCase: LetterCase,
+  dataTypeCase: LetterCase,
+  indent: FormatIndent,
+  logicalOperatorNewline: OperatorPlacement,
+  expressionWidth: number,
+  linesBetweenQueries: number,
+};
+
 export type AppSettings = {
   cellEditMode: CellEditMode,
   runTableQueryOnOpen: boolean,
   defaultRowLimit: number,
   colorFill: boolean,
+  format: FormatSettings,
 };
 
 const CELL_EDIT_MODES: readonly CellEditMode[] = ["viewer", "inline"];
+const LETTER_CASES: readonly LetterCase[] = ["upper", "lower", "preserve"];
+const FORMAT_INDENTS: readonly FormatIndent[] = ["spaces2", "spaces4", "tabs"];
+const OPERATOR_PLACEMENTS: readonly OperatorPlacement[] = ["before", "after"];
+export const EXPRESSION_WIDTHS: readonly number[] = [40, 50, 60, 80, 100, 120];
+export const LINES_BETWEEN_QUERIES: readonly number[] = [0, 1, 2];
+
+const DEFAULT_FORMAT: FormatSettings = {
+  keywordCase: "upper",
+  functionCase: "preserve",
+  dataTypeCase: "preserve",
+  indent: "spaces2",
+  logicalOperatorNewline: "after",
+  expressionWidth: 50,
+  linesBetweenQueries: 1,
+};
 
 export const ROW_LIMITS: readonly { value: number, label: string }[] = [
   { value: 100, label: "Limit 100" },
@@ -32,7 +62,25 @@ export const DEFAULT_SETTINGS: AppSettings = {
   runTableQueryOnOpen: true,
   defaultRowLimit: 1000,
   colorFill: true,
+  format: DEFAULT_FORMAT,
 };
+
+function oneOf<T>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? value as T : fallback;
+}
+
+function formatFromStored(stored: unknown): FormatSettings {
+  const values = (stored && typeof stored === "object" ? stored : {}) as Partial<Record<keyof FormatSettings, unknown>>;
+  return {
+    keywordCase: oneOf(values.keywordCase, LETTER_CASES, DEFAULT_FORMAT.keywordCase),
+    functionCase: oneOf(values.functionCase, LETTER_CASES, DEFAULT_FORMAT.functionCase),
+    dataTypeCase: oneOf(values.dataTypeCase, LETTER_CASES, DEFAULT_FORMAT.dataTypeCase),
+    indent: oneOf(values.indent, FORMAT_INDENTS, DEFAULT_FORMAT.indent),
+    logicalOperatorNewline: oneOf(values.logicalOperatorNewline, OPERATOR_PLACEMENTS, DEFAULT_FORMAT.logicalOperatorNewline),
+    expressionWidth: oneOf(values.expressionWidth, EXPRESSION_WIDTHS, DEFAULT_FORMAT.expressionWidth),
+    linesBetweenQueries: oneOf(values.linesBetweenQueries, LINES_BETWEEN_QUERIES, DEFAULT_FORMAT.linesBetweenQueries),
+  };
+}
 
 // Keys missing from an older file, or holding values this version doesn't know, take the default.
 function fromStored(stored: unknown): AppSettings {
@@ -46,6 +94,7 @@ function fromStored(stored: unknown): AppSettings {
       : DEFAULT_SETTINGS.runTableQueryOnOpen,
     defaultRowLimit: isRowLimit(values.defaultRowLimit) ? values.defaultRowLimit : DEFAULT_SETTINGS.defaultRowLimit,
     colorFill: typeof values.colorFill === "boolean" ? values.colorFill : DEFAULT_SETTINGS.colorFill,
+    format: formatFromStored(values.format),
   };
 }
 
@@ -64,7 +113,7 @@ function useSettingsStateInner() {
   }
 
   async function update(patch: Partial<AppSettings>) {
-    const previous = { ...settings };
+    const previous: AppSettings = { ...settings, format: { ...settings.format } };
     const next = { ...previous, ...patch };
     setSettings(reconcile(next));
     try {
@@ -75,7 +124,11 @@ function useSettingsStateInner() {
     }
   }
 
-  return { settings, loadError, load, update };
+  function updateFormat(patch: Partial<FormatSettings>) {
+    return update({ format: { ...settings.format, ...patch } });
+  }
+
+  return { settings, loadError, load, update, updateFormat };
 }
 
 const useSettingsState = createRoot(useSettingsStateInner);
