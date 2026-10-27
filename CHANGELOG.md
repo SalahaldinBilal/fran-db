@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-27
+
 ### Added
 
 - Query tabs have a Format button (Shift+Alt+F) that tidies up the SQL, or only the selected part, in the connection's dialect. Settings > Formatting sets the letter case of keywords, functions and data types, the indent, where AND and OR go, how long an expression stays on one line and the blank lines between statements, with a live preview.
