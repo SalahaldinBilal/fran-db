@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- MySQL and Postgres connections can reach a database in a Kubernetes cluster through `kubectl port-forward`. The connection form lists the contexts in your kubeconfig and always uses the one you pick, whatever kubectl's current context is.
+
 ## [0.1.4] - 2026-10-27
 
 ### Added

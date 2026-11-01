@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 
 use super::classify;
 use super::client::{CancelKey, PgConnection, PgError, RawResult};
-use super::connect::Connector;
+use super::connect::{Connector, Transport};
 use super::design::{self, Server};
 use super::metadata;
 use super::options::PostgresOptions;
@@ -29,7 +29,7 @@ use crate::db::types::{
     ObjectStructure, ReadQuery, RowChange, ServerInfo, SqlTemplate, StatementOutcome, TableDesign, TableForeignKey,
 };
 use crate::error::{AppError, AppResult};
-use crate::ssh::{SshTunnel, known_hosts::KnownHosts};
+use crate::ssh::known_hosts::KnownHosts;
 
 const PING_AFTER_IDLE: Duration = Duration::from_secs(60);
 
@@ -71,7 +71,7 @@ pub struct PostgresSession {
     meta: Mutex<Option<LiveConn>>,
     contexts: StdMutex<HashMap<ContextId, Arc<QueryContext>>>,
     next_context: AtomicU32,
-    tunnel: StdMutex<Option<SshTunnel>>,
+    transport: StdMutex<Option<Transport>>,
 }
 
 /// Drops a connection that failed below the SQL level so the next call reconnects.
@@ -127,7 +127,7 @@ async fn run_batch(conn: &mut PgConnection, statements: &[String], transactional
 
 impl PostgresSession {
     pub async fn connect(options: &PostgresOptions, secrets: &SecretBag, known_hosts: &KnownHosts) -> AppResult<Self> {
-        let (connector, tunnel) = Connector::prepare(options, secrets, known_hosts).await?;
+        let (connector, transport) = Connector::prepare(options, secrets, known_hosts).await?;
         let mut conn = connector.connect(None).await?;
 
         let version = match conn.parameter("server_version") {
@@ -157,7 +157,7 @@ impl PostgresSession {
             })),
             contexts: StdMutex::new(HashMap::new()),
             next_context: AtomicU32::new(1),
-            tunnel: StdMutex::new(tunnel),
+            transport: StdMutex::new(transport),
         })
     }
 
@@ -587,8 +587,8 @@ impl DatabaseSession for PostgresSession {
             live.conn.close().await;
         }
 
-        if let Ok(mut tunnel) = self.tunnel.lock() {
-            tunnel.take();
+        if let Ok(mut transport) = self.transport.lock() {
+            transport.take();
         }
     }
 }

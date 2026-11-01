@@ -1,6 +1,6 @@
 import shared from "../shared/ConnectionForm.module.scss";
 import { Match, Show, Switch as SwitchCase, createMemo, createSignal } from "solid-js";
-import { Cable, Network, Plug } from "lucide-solid";
+import { Cable, Container, Network, Plug } from "lucide-solid";
 import { PostgresConnectMethod, PostgresOptions, PostgresSslMode } from "@core/types";
 import { ConnectionFormProps } from "../types";
 import Field, { FieldRow, FieldSection } from "@core/components/Field/Field";
@@ -9,6 +9,7 @@ import Select, { SelectItem } from "@core/components/Select/Select";
 import SegmentedControl from "@core/components/SegmentedControl/SegmentedControl";
 import SecretField from "@core/components/SecretField/SecretField";
 import SshSection from "../shared/SshSection";
+import KubeSection from "../shared/KubeSection";
 import SslFileFields from "../shared/SslFileFields";
 import { IS_WINDOWS, toPort, toTimeout } from "../shared/fields";
 
@@ -18,6 +19,7 @@ const ALL_METHODS = [
   { value: "tcp", label: "TCP/IP", icon: Network },
   { value: "socket", label: "Socket", icon: Plug },
   { value: "sshTunnel", label: "TCP/IP over SSH", icon: Cable },
+  { value: "kubernetes", label: "Kubernetes", icon: Container },
 ] as const satisfies readonly { value: PostgresConnectMethod, label: string, icon: typeof Network }[];
 
 const METHODS = ALL_METHODS.filter(method => !IS_WINDOWS || method.value !== "socket");
@@ -34,6 +36,8 @@ function PostgresConnectionForm(props: ConnectionFormProps<PostgresOptions>) {
   const [section, setSection] = createSignal<Section>("connection");
   const isSsh = createMemo(() => props.options.method === "sshTunnel");
   const isSocket = createMemo(() => props.options.method === "socket");
+  const isKube = createMemo(() => props.options.method === "kubernetes");
+  const portLabel = createMemo(() => (isKube() ? "Remote port" : "Port"));
 
   return (
     <div class={shared.Form}>
@@ -69,30 +73,40 @@ function PostgresConnectionForm(props: ConnectionFormProps<PostgresOptions>) {
               />
             </Show>
 
+            <Show when={isKube()}>
+              <KubeSection
+                kube={props.options.kube}
+                description="kubectl port-forward opens first, then Postgres is reached through it."
+                update={mutate => props.update(options => mutate(options.kube))}
+              />
+            </Show>
+
             <FieldSection title="PostgreSQL">
               <FieldRow>
-                <Show
-                  when={!isSocket()}
-                  fallback={
-                    <Field label="Socket directory" hint="Or the socket file itself." grow>
+                <Show when={!isKube()}>
+                  <Show
+                    when={!isSocket()}
+                    fallback={
+                      <Field label="Socket directory" hint="Or the socket file itself." grow>
+                        <Input
+                          mono
+                          value={props.options.socketPath}
+                          onValue={value => props.update(options => { options.socketPath = value; })}
+                          placeholder="/var/run/postgresql"
+                        />
+                      </Field>
+                    }
+                  >
+                    <Field label={isSsh() ? "Postgres host (from the SSH server)" : "Host"} grow>
                       <Input
-                        mono
-                        value={props.options.socketPath}
-                        onValue={value => props.update(options => { options.socketPath = value; })}
-                        placeholder="/var/run/postgresql"
+                        value={props.options.host}
+                        onValue={value => props.update(options => { options.host = value; })}
+                        placeholder="127.0.0.1"
                       />
                     </Field>
-                  }
-                >
-                  <Field label={isSsh() ? "Postgres host (from the SSH server)" : "Host"} grow>
-                    <Input
-                      value={props.options.host}
-                      onValue={value => props.update(options => { options.host = value; })}
-                      placeholder="127.0.0.1"
-                    />
-                  </Field>
+                  </Show>
                 </Show>
-                <Field label="Port" width={96}>
+                <Field label={portLabel()} width={120}>
                   <Input
                     type="number"
                     value={props.options.port}

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::connections::SecretSlot;
+use crate::kube::KubeOptions;
 use crate::ssh::SshOptions;
 
 pub const PASSWORD_SLOT: &str = "password";
@@ -13,6 +14,7 @@ pub enum PostgresConnectMethod {
     /// Unix socket. Postgres has no named pipes on Windows.
     Socket,
     SshTunnel,
+    Kubernetes,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -49,6 +51,7 @@ pub struct PostgresOptions {
     pub database: String,
     pub default_schema: String,
     pub ssh: SshOptions,
+    pub kube: KubeOptions,
     pub ssl: PostgresSslOptions,
     pub connect_timeout_secs: u32,
     pub init_sql: String,
@@ -65,6 +68,7 @@ impl Default for PostgresOptions {
             database: "postgres".to_string(),
             default_schema: "public".to_string(),
             ssh: SshOptions::default(),
+            kube: KubeOptions::default(),
             ssl: PostgresSslOptions::default(),
             connect_timeout_secs: 10,
             init_sql: String::new(),
