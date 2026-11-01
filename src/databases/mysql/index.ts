@@ -61,6 +61,8 @@ function describeTarget(options: MysqlOptions): string {
       return `${user}@${options.socketPath || "(no socket)"}`;
     case "sshTunnel":
       return `${user}@${options.host}:${options.port} via ${options.ssh.user}@${options.ssh.host}`;
+    case "kubernetes":
+      return `${user}@${options.kube.resource || "(no pod)"}:${options.port} in ${options.kube.context || "(no context)"}`;
   }
 }
 
@@ -72,6 +74,8 @@ function suggestName(options: MysqlOptions): string {
       return "Local MySQL";
     case "sshTunnel":
       return options.ssh.host.trim() || options.host.trim() || "MySQL";
+    case "kubernetes":
+      return options.kube.resource.replace(/^[^/]*\//, "").trim() || options.kube.context.trim() || "MySQL";
   }
 }
 
@@ -83,6 +87,8 @@ function methodLabel(options: MysqlOptions): string {
       return "Socket";
     case "sshTunnel":
       return "SSH";
+    case "kubernetes":
+      return "Kubernetes";
   }
 }
 
@@ -101,6 +107,7 @@ const mysqlModule: DatabaseModule<"mysql"> = {
     user: "root",
     defaultSchema: "",
     ssh: { host: "", port: 22, user: "", auth: "password", keyFile: "", agentSocket: "" },
+    kube: { context: "", namespace: "", resource: "", kubectlPath: "" },
     ssl: { mode: "preferred", caFile: "", certFile: "", keyFile: "" },
     compression: false,
     cleartextAuth: false,

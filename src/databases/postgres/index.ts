@@ -57,6 +57,8 @@ function describeTarget(options: PostgresOptions): string {
       return `${user}@${options.socketPath || "(no socket)"}/${database}`;
     case "sshTunnel":
       return `${user}@${options.host}:${options.port}/${database} via ${options.ssh.user}@${options.ssh.host}`;
+    case "kubernetes":
+      return `${user}@${options.kube.resource || "(no pod)"}:${options.port}/${database} in ${options.kube.context || "(no context)"}`;
   }
 }
 
@@ -68,6 +70,8 @@ function suggestName(options: PostgresOptions): string {
       return "Local PostgreSQL";
     case "sshTunnel":
       return options.ssh.host.trim() || options.host.trim() || "PostgreSQL";
+    case "kubernetes":
+      return options.kube.resource.replace(/^[^/]*\//, "").trim() || options.kube.context.trim() || "PostgreSQL";
   }
 }
 
@@ -79,6 +83,8 @@ function methodLabel(options: PostgresOptions): string {
       return "Socket";
     case "sshTunnel":
       return "SSH";
+    case "kubernetes":
+      return "Kubernetes";
   }
 }
 
@@ -98,6 +104,7 @@ const postgresModule: DatabaseModule<"postgres"> = {
     database: "postgres",
     defaultSchema: "public",
     ssh: { host: "", port: 22, user: "", auth: "password", keyFile: "", agentSocket: "" },
+    kube: { context: "", namespace: "", resource: "", kubectlPath: "" },
     ssl: { mode: "prefer", caFile: "", certFile: "", keyFile: "" },
     connectTimeoutSecs: 10,
     initSql: "",

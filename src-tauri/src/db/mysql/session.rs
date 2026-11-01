@@ -31,6 +31,7 @@ use crate::db::types::{
 };
 use crate::error::{AppError, AppResult, ErrorDetail};
 use crate::forward::LocalForward;
+use crate::kube::KubeForward;
 #[cfg(windows)]
 use crate::forward::open_named_pipe;
 use crate::ssh::{SshTunnel, known_hosts::KnownHosts};
@@ -47,6 +48,7 @@ enum Endpoint {
 #[allow(dead_code)]
 enum Transport {
     Ssh(SshTunnel),
+    Kube(KubeForward),
     Forward(LocalForward),
 }
 
@@ -271,6 +273,16 @@ impl MysqlSession {
                         port: tunnel.local_port(),
                     },
                     Some(Transport::Ssh(tunnel)),
+                )
+            }
+            MysqlConnectMethod::Kubernetes => {
+                let forward = KubeForward::open(&options.kube, options.port, connect_timeout).await?;
+                (
+                    Endpoint::Tcp {
+                        host: "127.0.0.1".to_string(),
+                        port: forward.local_port(),
+                    },
+                    Some(Transport::Kube(forward)),
                 )
             }
         };

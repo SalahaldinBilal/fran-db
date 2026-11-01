@@ -15,6 +15,7 @@ use super::splitter;
 use super::sqlgen::quote_identifier;
 use crate::connections::SecretBag;
 use crate::error::{AppError, AppResult};
+use crate::kube::KubeForward;
 use crate::ssh::{SshTunnel, known_hosts::KnownHosts};
 
 const KEEPALIVE_AFTER: Duration = Duration::from_secs(60);
@@ -25,6 +26,13 @@ enum Endpoint {
     Tcp { host: String, port: u16 },
     #[cfg_attr(not(unix), allow(dead_code))]
     Socket(PathBuf),
+}
+
+/// Whatever keeps the endpoint reachable. Dropping it closes the forward.
+#[allow(dead_code)]
+pub enum Transport {
+    Ssh(SshTunnel),
+    Kube(KubeForward),
 }
 
 /// Everything needed to open another connection to the same server, for contexts, batches and cancels.
@@ -117,7 +125,7 @@ impl Connector {
         options: &PostgresOptions,
         secrets: &SecretBag,
         known_hosts: &KnownHosts,
-    ) -> AppResult<(Self, Option<SshTunnel>)> {
+    ) -> AppResult<(Self, Option<Transport>)> {
         let timeout = Duration::from_secs(u64::from(options.connect_timeout_secs.max(1)));
         let password = secrets
             .get(PASSWORD_SLOT)
@@ -126,7 +134,7 @@ impl Connector {
         let host = options.host.trim().to_string();
         let tls = tls_settings(options)?;
 
-        let (endpoint, tunnel) = match options.method {
+        let (endpoint, transport) = match options.method {
             PostgresConnectMethod::Tcp => (Endpoint::Tcp { host, port: options.port }, None),
             PostgresConnectMethod::Socket => (socket_endpoint(&options.socket_path, options.port)?, None),
             PostgresConnectMethod::SshTunnel => {
@@ -137,7 +145,17 @@ impl Connector {
                         host: "127.0.0.1".to_string(),
                         port: tunnel.local_port(),
                     },
-                    Some(tunnel),
+                    Some(Transport::Ssh(tunnel)),
+                )
+            }
+            PostgresConnectMethod::Kubernetes => {
+                let forward = KubeForward::open(&options.kube, options.port, timeout).await?;
+                (
+                    Endpoint::Tcp {
+                        host: "127.0.0.1".to_string(),
+                        port: forward.local_port(),
+                    },
+                    Some(Transport::Kube(forward)),
                 )
             }
         };
@@ -157,7 +175,7 @@ impl Connector {
                 .collect(),
         };
 
-        Ok((connector, tunnel))
+        Ok((connector, transport))
     }
 
     pub fn database(&self) -> &str {

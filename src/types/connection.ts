@@ -25,7 +25,19 @@ export type SshOptions = {
   agentSocket: string,
 };
 
-export type MysqlConnectMethod = "tcp" | "socket" | "sshTunnel";
+export type KubeOptions = {
+  context: string,
+  namespace: string,
+  resource: string,
+  kubectlPath: string,
+};
+
+export type KubeContexts = {
+  contexts: string[],
+  current: string | null,
+};
+
+export type MysqlConnectMethod = "tcp" | "socket" | "sshTunnel" | "kubernetes";
 
 export type SslMode = "disabled" | "preferred" | "required" | "verifyCa" | "verifyIdentity";
 
@@ -41,6 +53,7 @@ export type MysqlOptions = {
   user: string,
   defaultSchema: string,
   ssh: SshOptions,
+  kube: KubeOptions,
   ssl: MysqlSslOptions,
   compression: boolean,
   cleartextAuth: boolean,
@@ -48,7 +61,7 @@ export type MysqlOptions = {
   initSql: string,
 };
 
-export type PostgresConnectMethod = "tcp" | "socket" | "sshTunnel";
+export type PostgresConnectMethod = "tcp" | "socket" | "sshTunnel" | "kubernetes";
 
 export type PostgresSslMode = "disable" | "prefer" | "require" | "verifyCa" | "verifyFull";
 
@@ -71,6 +84,7 @@ export type PostgresOptions = {
   database: string,
   defaultSchema: string,
   ssh: SshOptions,
+  kube: KubeOptions,
   ssl: PostgresSslOptions,
   connectTimeoutSecs: number,
   initSql: string,

@@ -4,6 +4,7 @@ pub mod db;
 pub mod error;
 pub mod forward;
 pub mod json_store;
+pub mod kube;
 pub mod saved_queries;
 pub mod settings;
 pub mod splash;
@@ -77,6 +78,7 @@ pub fn run() {
             ssh::forwards::start_port_forward,
             ssh::forwards::stop_port_forward,
             ssh::forwards::list_port_forwards,
+            kube::list_kube_contexts,
             db::commands::open_session,
             db::commands::test_connection,
             db::commands::close_session,

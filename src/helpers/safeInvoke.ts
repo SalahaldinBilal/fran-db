@@ -2,7 +2,7 @@ import { Channel, invoke, InvokeOptions } from "@tauri-apps/api/core";
 import {
   AgentApproval, AgentConfig, AgentHistoryEntry, AgentServerStatus, AgentSessionInfo,
   BatchOutcome, CatalogColumn, ColumnChoices, ColumnMeta, ConnectionProfile, DatabaseInfo, DatabaseKind, DatabaseSize, DesignOptions,
-  HostKeyInfo, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, RowChange, SavedQuery, ServerInfo,
+  HostKeyInfo, KubeContexts, ObjectInfo, ObjectKind, ObjectStructure, PortForwardInfo, RowChange, SavedQuery, ServerInfo,
   SessionInfo, SqlTemplate, StatementOutcome, StatementRange, TableDesign, VaultStatus,
 } from "@core/types";
 
@@ -35,6 +35,7 @@ type Commands = {
   "start_port_forward": Command<{ connectionId: string, localPort: number, secrets: Secrets }, PortForwardInfo>,
   "stop_port_forward": Command<{ connectionId: string }>,
   "list_port_forwards": Command<undefined, PortForwardInfo[]>,
+  "list_kube_contexts": Command<{ kubectlPath: string }, KubeContexts>,
 
   "open_session": Command<{ connectionId: string, secrets: Secrets }, SessionInfo>,
   "test_connection": Command<{ profile: ConnectionProfile, secrets: Secrets }, ServerInfo>,

@@ -45,3 +45,12 @@
     color: var(--text-faint);
   }
 }
+
+.Picker {
+  display: flex;
+  gap: 8px;
+
+  > :first-child {
+    flex: 1;
+  }
+}

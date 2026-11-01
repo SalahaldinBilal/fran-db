@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::connections::SecretSlot;
+use crate::kube::KubeOptions;
 use crate::ssh::SshOptions;
 
 pub const PASSWORD_SLOT: &str = "password";
@@ -13,6 +14,7 @@ pub enum MysqlConnectMethod {
     /// Unix socket, or a named pipe on Windows.
     Socket,
     SshTunnel,
+    Kubernetes,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -46,6 +48,7 @@ pub struct MysqlOptions {
     pub user: String,
     pub default_schema: String,
     pub ssh: SshOptions,
+    pub kube: KubeOptions,
     pub ssl: MysqlSslOptions,
     pub compression: bool,
     pub cleartext_auth: bool,
@@ -63,6 +66,7 @@ impl Default for MysqlOptions {
             user: "root".to_string(),
             default_schema: String::new(),
             ssh: SshOptions::default(),
+            kube: KubeOptions::default(),
             ssl: MysqlSslOptions::default(),
             compression: false,
             cleartext_auth: false,
