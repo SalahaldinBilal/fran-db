@@ -121,6 +121,7 @@ export type ConnectionProfile = {
   id: string,
   name: string,
   color: string | null,
+  group: string | null,
   forwardPort: number | null,
   agentAccess: AgentAccess,
 } & DriverOptions;

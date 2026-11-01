@@ -119,6 +119,21 @@
   }
 }
 
+.Grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: var(--text-faint);
+  cursor: grab;
+  transition: color var(--duration) var(--ease);
+
+  &:hover {
+    color: var(--text-muted);
+  }
+}
+
 .Target {
   display: flex;
   align-items: center;

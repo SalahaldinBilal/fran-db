@@ -79,8 +79,98 @@
   height: 100%;
 }
 
+.Section + .Section {
+  margin-top: 28px;
+}
+
+.SectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 10px;
+
+  &:hover .Grip {
+    opacity: 1;
+  }
+}
+
+.Grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: -18px;
+  color: var(--text-faint);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease), color var(--duration) var(--ease);
+
+  &:hover {
+    color: var(--text-muted);
+  }
+}
+
+.SectionTitle {
+  margin: 0 0 0 2px;
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+
+  &.Renamable {
+    cursor: text;
+    text-decoration: underline dotted transparent;
+    text-underline-offset: 3px;
+    transition: color var(--duration) var(--ease), text-decoration-color var(--duration) var(--ease);
+
+    &:hover {
+      color: var(--text-muted);
+      text-decoration-color: var(--text-faint);
+    }
+  }
+}
+
+.RenameInput {
+  margin-left: 2px;
+  padding: 1px 4px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background-color: var(--control);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  outline: none;
+}
+
 .Grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 12px;
+
+  &.Empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-xl);
+    color: var(--text-faint);
+    font-size: var(--font-sm);
+  }
+}
+
+.RemoveGroup {
+  margin-left: 2px;
+}
+
+.AddGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
 }

@@ -1,6 +1,6 @@
 import styles from "./ConnectionCard.module.scss";
 import { Show, createMemo } from "solid-js";
-import { ArrowRight, Cable, Copy, Database, Ellipsis, Pencil, Plug, Server, Trash2 } from "lucide-solid";
+import { ArrowRight, Cable, Copy, Database, Ellipsis, GripVertical, Pencil, Plug, Server, Trash2 } from "lucide-solid";
 import { ConnectionProfile } from "@core/types";
 import { withDatabaseModule } from "@core/databases";
 import useWorkspaceState from "@core/states/workspaceState";
@@ -17,6 +17,7 @@ import { tooltip } from "@core/components/Tooltip/Tooltip";
 export type ConnectionCardProps = {
   profile: ConnectionProfile,
   onEdit: () => void,
+  onGrab?: (event: PointerEvent) => void,
 };
 
 function ConnectionCard(props: ConnectionCardProps) {
@@ -104,6 +105,17 @@ function ConnectionCard(props: ConnectionCardProps) {
           <div class={styles.Kind}>{details().kind}</div>
         </div>
         <div class={styles.Tools} classList={{ [styles.Pinned]: forwarding() }} onClick={event => event.stopPropagation()}>
+          <Show when={props.onGrab}>
+            {grab => (
+              <span
+                ref={element => tooltip(element, () => "Drag to reorder")}
+                class={styles.Grip}
+                onPointerDown={event => grab()(event)}
+              >
+                <GripVertical size={14} />
+              </span>
+            )}
+          </Show>
           <Show when={details().forwardable}>
             <Button
               icon

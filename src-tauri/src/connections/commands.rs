@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tauri::State;
 
-use super::{ConnectionProfile, ConnectionStore, secret_id, secret_prefix};
+use super::{ConnectionProfile, ConnectionStore, ConnectionsFile, secret_id, secret_prefix};
 use crate::agent::AgentHost;
 use crate::error::{AppError, AppResult};
 use crate::tab_state::TabStateStore;
@@ -11,8 +11,23 @@ use crate::vault::Vault;
 #[tauri::command]
 pub async fn list_connections(
     store: State<'_, Arc<ConnectionStore>>,
-) -> AppResult<Vec<ConnectionProfile>> {
-    store.read(|file| file.connections.clone())
+) -> AppResult<ConnectionsFile> {
+    store.read(|file| file.clone())
+}
+
+#[tauri::command]
+pub async fn save_connection_order(
+    store: State<'_, Arc<ConnectionStore>>,
+    ids: Vec<String>,
+    groups: Vec<String>,
+) -> AppResult<()> {
+    store.update(move |file| {
+        file.connections.sort_by_key(|profile| {
+            ids.iter().position(|id| *id == profile.id).unwrap_or(usize::MAX)
+        });
+        file.group_order = groups;
+        Ok(())
+    })
 }
 
 #[tauri::command]
@@ -40,6 +55,35 @@ pub async fn save_connection(
 
     agent.close_connection_sessions(&saved.id).await;
     Ok(saved)
+}
+
+#[tauri::command]
+pub async fn rename_group(
+    store: State<'_, Arc<ConnectionStore>>,
+    from: String,
+    to: String,
+) -> AppResult<()> {
+    if to.trim().is_empty() {
+        return Err(AppError::general("A group needs a name"));
+    }
+
+    store.update(move |file| {
+        for profile in &mut file.connections {
+            if profile.group.as_deref() == Some(&from) {
+                profile.group = Some(to.clone());
+            }
+        }
+        if file.group_order.contains(&to) {
+            file.group_order.retain(|name| *name != from);
+        } else {
+            for name in &mut file.group_order {
+                if *name == from {
+                    *name = to.clone();
+                }
+            }
+        }
+        Ok(())
+    })
 }
 
 #[tauri::command]

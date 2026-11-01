@@ -20,6 +20,8 @@ pub struct ConnectionProfile {
     #[serde(default)]
     pub color: Option<String>,
     #[serde(default)]
+    pub group: Option<String>,
+    #[serde(default)]
     pub forward_port: Option<u16>,
     #[serde(default)]
     pub agent_access: AgentAccess,
@@ -31,6 +33,8 @@ pub struct ConnectionProfile {
 #[serde(rename_all = "camelCase", default)]
 pub struct ConnectionsFile {
     pub connections: Vec<ConnectionProfile>,
+    /// Group names in display order, "" for the ungrouped ones.
+    pub group_order: Vec<String>,
 }
 
 pub type ConnectionStore = JsonStore<ConnectionsFile>;
