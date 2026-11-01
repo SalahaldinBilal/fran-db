@@ -24,8 +24,10 @@ type Commands = {
   "get_vault_status": Command<undefined, VaultStatus>,
   "reset_vault": Command<undefined, VaultStatus>,
 
-  "list_connections": Command<undefined, ConnectionProfile[]>,
+  "list_connections": Command<undefined, { connections: ConnectionProfile[], groupOrder: string[] }>,
   "save_connection": Command<{ profile: ConnectionProfile }, ConnectionProfile>,
+  "save_connection_order": Command<{ ids: string[], groups: string[] }>,
+  "rename_group": Command<{ from: string, to: string }>,
   "duplicate_connection": Command<{ id: string }, ConnectionProfile>,
   "delete_connection": Command<{ id: string }>,
   "get_stored_secrets": Command<{ connectionId: string }, string[]>,

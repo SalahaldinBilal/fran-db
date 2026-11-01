@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - MySQL and Postgres connections can reach a database in a Kubernetes cluster through `kubectl port-forward`. The connection form lists the contexts in your kubeconfig and always uses the one you pick, whatever kubectl's current context is.
+- Connections can be put in groups. The connection editor has a Group field that suggests existing groups, and the Connections tab shows a section per group. Edit groups on the Connections tab adds, renames and removes groups, and shows handles for reordering groups and connections by dragging. Dragging a connection into another group moves it there.
 
 ## [0.1.4] - 2026-10-27
 

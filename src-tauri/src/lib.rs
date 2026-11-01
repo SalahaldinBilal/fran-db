@@ -69,6 +69,8 @@ pub fn run() {
             vault::commands::reset_vault,
             connections::commands::list_connections,
             connections::commands::save_connection,
+            connections::commands::save_connection_order,
+            connections::commands::rename_group,
             connections::commands::duplicate_connection,
             connections::commands::delete_connection,
             connections::commands::get_stored_secrets,

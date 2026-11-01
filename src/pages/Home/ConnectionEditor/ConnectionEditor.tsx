@@ -15,6 +15,7 @@ import Button from "@core/components/Button/Button";
 import Field, { FieldRow } from "@core/components/Field/Field";
 import Input from "@core/components/Input/Input";
 import Select from "@core/components/Select/Select";
+import SuggestInput from "@core/components/SuggestInput/SuggestInput";
 import Spinner from "@core/components/Spinner/Spinner";
 import ColorPicker from "@core/components/ColorPicker/ColorPicker";
 import { tooltip } from "@core/components/Tooltip/Tooltip";
@@ -30,7 +31,7 @@ export type ConnectionEditorProps = {
 type TestResult = { ok: boolean, message: string };
 
 function blankProfile(kind: DatabaseKind): ConnectionProfile {
-  return { id: "", name: "", color: null, forwardPort: null, agentAccess: { mode: "off", databases: [] }, ...defaultDriver(kind) };
+  return { id: "", name: "", color: null, group: null, forwardPort: null, agentAccess: { mode: "off", databases: [] }, ...defaultDriver(kind) };
 }
 
 function ConnectionEditor(props: ConnectionEditorProps) {
@@ -49,6 +50,13 @@ function ConnectionEditor(props: ConnectionEditorProps) {
   const isNew = createMemo(() => !draft.id);
   const target = createMemo(() => withDatabaseModule(draft, (module, options) => module.describeTarget(options)));
   const suggestedName = createMemo(() => withDatabaseModule(draft, (module, options) => module.suggestName(options)));
+  const groups = createMemo(() => {
+    const names = new Set(connections.groupOrder().filter(name => name !== ""));
+    for (const profile of connections.connections) {
+      if (profile.group !== null) names.add(profile.group);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  });
 
   createEffect(on(() => [props.show, props.profile] as const, ([show, profile]) => {
     if (!show) return;
@@ -190,50 +198,61 @@ function ConnectionEditor(props: ConnectionEditorProps) {
           </Field>
         </FieldRow>
 
-        <Field label="Color">
-          <div class={styles.Colors}>
-            <button
-              class={styles.Swatch}
-              classList={{ [styles.Selected]: draft.color === null }}
-              aria-label="Default color"
-              onClick={() => setDraft("color", null)}
+        <FieldRow>
+          <Field label="Group" grow>
+            <SuggestInput
+              class={styles.GroupInput}
+              value={draft.group ?? ""}
+              suggestions={groups()}
+              onCommit={value => setDraft("group", value || null)}
+              placeholder="No group"
             />
-            <For each={COLORS}>
-              {color => (
-                <button
-                  class={styles.Swatch}
-                  classList={{ [styles.Selected]: draft.color === color }}
-                  style={{ "--swatch": color }}
-                  aria-label={color}
-                  onClick={() => setDraft("color", color)}
-                />
-              )}
-            </For>
-            <button
-              ref={element => tooltip(element, () => "Custom color")}
-              class={`${styles.Swatch} ${styles.Custom}`}
-              classList={{ [styles.Selected]: customColor() !== null }}
-              style={{ "--swatch": customColor() ?? undefined }}
-              aria-label="Custom color"
-              aria-expanded={pickerAnchor() !== null}
-              onClick={event => setPickerAnchor(pickerAnchor() ? null : event.currentTarget)}
-            >
-              <Show when={customColor() === null}>
-                <Pipette size={11} />
+          </Field>
+          <Field label="Color">
+            <div class={styles.Colors}>
+              <button
+                class={styles.Swatch}
+                classList={{ [styles.Selected]: draft.color === null }}
+                aria-label="Default color"
+                onClick={() => setDraft("color", null)}
+              />
+              <For each={COLORS}>
+                {color => (
+                  <button
+                    class={styles.Swatch}
+                    classList={{ [styles.Selected]: draft.color === color }}
+                    style={{ "--swatch": color }}
+                    aria-label={color}
+                    onClick={() => setDraft("color", color)}
+                  />
+                )}
+              </For>
+              <button
+                ref={element => tooltip(element, () => "Custom color")}
+                class={`${styles.Swatch} ${styles.Custom}`}
+                classList={{ [styles.Selected]: customColor() !== null }}
+                style={{ "--swatch": customColor() ?? undefined }}
+                aria-label="Custom color"
+                aria-expanded={pickerAnchor() !== null}
+                onClick={event => setPickerAnchor(pickerAnchor() ? null : event.currentTarget)}
+              >
+                <Show when={customColor() === null}>
+                  <Pipette size={11} />
+                </Show>
+              </button>
+              <Show when={pickerAnchor()}>
+                {anchor => (
+                  <ColorPicker
+                    anchor={anchor()}
+                    value={customColor() ?? draft.color ?? COLORS[0]}
+                    onChange={hex => setDraft("color", hex)}
+                    onClose={() => setPickerAnchor(null)}
+                  />
+                )}
               </Show>
-            </button>
-            <Show when={pickerAnchor()}>
-              {anchor => (
-                <ColorPicker
-                  anchor={anchor()}
-                  value={customColor() ?? draft.color ?? COLORS[0]}
-                  onChange={hex => setDraft("color", hex)}
-                  onClose={() => setPickerAnchor(null)}
-                />
-              )}
-            </Show>
-          </div>
-        </Field>
+            </div>
+          </Field>
+        </FieldRow>
 
         <div class={styles.Divider} />
 

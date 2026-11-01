@@ -9,9 +9,39 @@
   background-color: var(--border);
 }
 
+.GroupInput {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--control-height);
+  padding: 0 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background-color: var(--control);
+  color: var(--text-strong);
+  font-family: inherit;
+  font-size: var(--font-md);
+  transition: var(--transition-colors);
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+
+  &:hover:not(:focus) {
+    border-color: var(--control-border-hover);
+    background-color: var(--control-hover);
+  }
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+}
+
 .Colors {
   display: flex;
   align-items: center;
+  height: var(--control-height);
   gap: 8px;
 }
 
