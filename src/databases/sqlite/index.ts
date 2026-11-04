@@ -4,6 +4,7 @@ import { DefaultKind } from "@core/helpers/defaultValues";
 import { DatabaseModule } from "../types";
 import { sqlFormatter } from "../shared/format";
 import SqliteConnectionForm from "./SqliteConnectionForm";
+import { parseSqliteConnectionString } from "./connectionString";
 
 function quoteIdentifier(name: string): string {
   return `"${name.replaceAll("\"", "\"\"")}"`;
@@ -55,6 +56,7 @@ const sqliteModule: DatabaseModule<"sqlite"> = {
     initSql: "",
   }),
   ConnectionForm: SqliteConnectionForm,
+  parseConnectionString: parseSqliteConnectionString,
   describeTarget: options => options.path.trim() || "(no file)",
   suggestName: options => fileName(options.path.trim()) || "SQLite",
   methodLabel: options => (options.readOnly ? "File, read only" : "File"),

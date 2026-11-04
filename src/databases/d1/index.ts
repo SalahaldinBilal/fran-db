@@ -14,6 +14,7 @@ const d1Module: DatabaseModule<"d1"> = {
     timeoutSecs: 30,
   }),
   ConnectionForm: D1ConnectionForm,
+  parseConnectionString: undefined,
   describeTarget: options => `${options.database.trim() || "(no database)"} on D1`,
   suggestName: options => options.database.trim() || "Cloudflare D1",
   methodLabel: () => "HTTP API",

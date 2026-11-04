@@ -17,6 +17,15 @@ export type ConnectionFormProps<Options> = {
   options: Options,
   update: (mutate: (options: Options) => void) => void,
   secrets: SecretEditor,
+  // True when the text was a connection string the editor took over, so the paste shouldn't land in the field.
+  onConnectionString?: (text: string) => boolean,
+};
+
+export type ParsedConnection<Options> = {
+  options: Options,
+  password: string | null,
+  filled: string[],
+  ignored: string[],
 };
 
 export type DatabaseModule<K extends DatabaseKind> = {
@@ -32,6 +41,8 @@ export type DatabaseModule<K extends DatabaseKind> = {
   catalogLabel: string | null,
   defaultOptions: () => OptionsByKind[K],
   ConnectionForm: Component<ConnectionFormProps<OptionsByKind[K]>>,
+  // Null when the text isn't a connection string for this kind. Throws a ConnectionStringError when it is but can't be read.
+  parseConnectionString?: (text: string, current: OptionsByKind[K]) => ParsedConnection<OptionsByKind[K]> | null,
   describeTarget: (options: OptionsByKind[K]) => string,
   suggestName: (options: OptionsByKind[K]) => string,
   methodLabel: (options: OptionsByKind[K]) => string,

@@ -5,6 +5,7 @@ import { DefaultKind } from "@core/helpers/defaultValues";
 import { DatabaseModule } from "../types";
 import { sqlFormatter } from "../shared/format";
 import MysqlConnectionForm from "./MysqlConnectionForm";
+import { parseMysqlConnectionString } from "./connectionString";
 
 function quoteIdentifier(name: string): string {
   return `\`${name.replaceAll("`", "``")}\``;
@@ -115,6 +116,7 @@ const mysqlModule: DatabaseModule<"mysql"> = {
     initSql: "",
   }),
   ConnectionForm: MysqlConnectionForm,
+  parseConnectionString: parseMysqlConnectionString,
   describeTarget,
   suggestName,
   methodLabel,

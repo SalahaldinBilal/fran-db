@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Results can be selected many rows or cells at a time. Click or drag across row numbers to pick rows, Shift+click for a range, Ctrl+click to add or remove one, drag across cells for a block, click a column header for the whole column, and Ctrl+A for everything. Shift+arrows extend the selection and Esc goes back to one cell.
 - Ctrl+C copies the selection as tab-separated text that pastes into spreadsheets, and Ctrl+Shift+C adds the column names. The right-click menu also copies as CSV, JSON, a Markdown table or SQL INSERT statements. INSERT needs every column to come from one table.
 - Delete row and Restore row work on every selected row at once.
+- The connection editor fills itself in from a connection string. Paste one into the new Connection string field, or straight into Host. It reads `mysql://`, `mariadb://`, `postgres://`, `postgresql://` and their `jdbc:` and `+driver` forms, libpq `key=value` strings, and SQLite `sqlite:` and `file:` URLs or file paths, including SSL modes, certificate files, timeouts and sockets. A string for another database type switches the form to it. The password goes to the vault on save, and options Fran DB doesn't use are listed instead of dropped silently.
 
 ## [0.1.5] - 2026-11-01
 

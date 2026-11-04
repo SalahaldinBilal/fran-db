@@ -21,6 +21,7 @@ export type InputProps = {
   style?: JSX.CSSProperties,
   onKeyDown?: JSX.EventHandler<HTMLInputElement, KeyboardEvent>,
   onBlur?: JSX.EventHandler<HTMLInputElement, FocusEvent>,
+  onPaste?: JSX.EventHandler<HTMLInputElement, ClipboardEvent>,
 };
 
 function Input(props: InputProps) {
@@ -84,6 +85,7 @@ function Input(props: InputProps) {
           props.onBlur?.(event);
         }}
         onKeyDown={onKeyDown}
+        onPaste={event => props.onPaste?.(event)}
       />
       <Show when={canClear()}>
         <button

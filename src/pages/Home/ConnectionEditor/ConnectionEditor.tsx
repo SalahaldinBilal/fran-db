@@ -1,14 +1,16 @@
 import styles from "./ConnectionEditor.module.scss";
 import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
 import { createStore, produce, reconcile, unwrap } from "solid-js/store";
-import { CircleAlert, CircleCheck, Pipette, Plug } from "lucide-solid";
+import { CircleAlert, CircleCheck, Pipette, Plug, Wand2 } from "lucide-solid";
 import { ConnectionProfile, DatabaseKind, DriverOptions } from "@core/types";
-import { databaseModules, defaultDriver, withDatabaseModule } from "@core/databases";
+import { databaseModule, databaseModules, defaultDriver, parseConnectionString, ParsedDriver, withDatabaseModule } from "@core/databases";
 import { PendingSecret, SecretEditor } from "@core/databases/types";
+import { ConnectionStringError } from "@core/databases/shared/connectionString";
 import { safeInvoke } from "@core/helpers/safeInvoke";
 import { withConnectPrompts } from "@core/helpers/connectFlow";
 import { errorMessage } from "@core/helpers/errors";
 import useConnectionsState from "@core/states/connectionsState";
+import usePromptState from "@core/states/promptState";
 import useToastState from "@core/states/toastState";
 import Modal from "@core/components/Modal/Modal";
 import Button from "@core/components/Button/Button";
@@ -29,6 +31,17 @@ export type ConnectionEditorProps = {
 };
 
 type TestResult = { ok: boolean, message: string };
+type ParseNote = { ok: boolean, message: string };
+
+// What a paste into the Host field has to look like before it's read as a connection string.
+const CONNECTION_STRING_SHAPE = /^\s*([a-z][\w+.-]*:\/\/|jdbc:|\w+\s*=)/i;
+
+function parsedSummary(parsed: ParsedDriver): string {
+  const parts = [`Filled in ${parsed.filled.join(", ")}.`];
+  if (parsed.password !== null) parts.push("The password goes to the vault when you save, not into the connection.");
+  if (parsed.ignored.length > 0) parts.push(`Not used: ${parsed.ignored.join(", ")}.`);
+  return parts.join(" ");
+}
 
 function blankProfile(kind: DatabaseKind): ConnectionProfile {
   return { id: "", name: "", color: null, group: null, forwardPort: null, agentAccess: { mode: "off", databases: [] }, ...defaultDriver(kind) };
@@ -36,7 +49,10 @@ function blankProfile(kind: DatabaseKind): ConnectionProfile {
 
 function ConnectionEditor(props: ConnectionEditorProps) {
   const connections = useConnectionsState;
+  const { confirm } = usePromptState;
   const { pushToast, pushError } = useToastState;
+  const [connectionString, setConnectionString] = createSignal("");
+  const [parseNote, setParseNote] = createSignal<ParseNote | null>(null);
 
   const [draft, setDraft] = createStore<ConnectionProfile>(blankProfile("mysql"));
   const [pending, setPending] = createStore<Record<string, PendingSecret>>({});
@@ -66,6 +82,8 @@ function ConnectionEditor(props: ConnectionEditorProps) {
     setPending(reconcile({}));
     setStoredSlots([]);
     setTestResult(null);
+    setConnectionString("");
+    setParseNote(null);
 
     if (profile) {
       safeInvoke("get_stored_secrets", { connectionId: profile.id })
@@ -102,6 +120,57 @@ function ConnectionEditor(props: ConnectionEditorProps) {
 
   function updateOptions(mutate: (options: DriverOptions["options"]) => void) {
     setDraft("options", produce(mutate));
+  }
+
+  function hasFormChanges(): boolean {
+    if (!isNew()) return true;
+    return JSON.stringify(unwrap(draft.options)) !== JSON.stringify(defaultDriver(draft.kind).options);
+  }
+
+  async function applyParsed(parsed: ParsedDriver) {
+    const switching = parsed.driver.kind !== draft.kind;
+    if (switching && hasFormChanges()) {
+      const from = databaseModule(draft.kind).label;
+      const to = databaseModule(parsed.driver.kind).label;
+      const confirmed = await confirm({
+        title: `Switch to ${to}?`,
+        message: `This is a ${to} connection string. Switching replaces the ${from} settings you've filled in.`,
+        confirmLabel: `Switch to ${to}`,
+      });
+      if (!confirmed) return;
+    }
+
+    setDraft(produce(profile => Object.assign(profile, parsed.driver)));
+    if (switching) setPending(reconcile({}));
+    if (parsed.password !== null) setPending("password", parsed.password);
+    setConnectionString("");
+    setTestResult(null);
+    setParseNote({ ok: true, message: parsedSummary(parsed) });
+  }
+
+  // True when the text was taken as a connection string, including one that turned out to be broken.
+  function takeConnectionString(text: string): boolean {
+    let parsed: ParsedDriver | null;
+    try {
+      parsed = parseConnectionString(text, unwrap(draft));
+    } catch (error) {
+      if (!(error instanceof ConnectionStringError)) throw error;
+      setParseNote({ ok: false, message: error.message });
+      return true;
+    }
+    if (!parsed) return false;
+    void applyParsed(parsed);
+    return true;
+  }
+
+  function fillFromConnectionString() {
+    if (!takeConnectionString(connectionString())) {
+      setParseNote({ ok: false, message: "That isn't a connection string Fran DB can read." });
+    }
+  }
+
+  function pastedIntoHost(text: string): boolean {
+    return CONNECTION_STRING_SHAPE.test(text) && takeConnectionString(text);
   }
 
   async function test() {
@@ -254,10 +323,46 @@ function ConnectionEditor(props: ConnectionEditorProps) {
           </Field>
         </FieldRow>
 
+        <Field label="Connection string">
+          <div class={styles.ConnectionString}>
+            <Input
+              mono
+              class={styles.ConnectionStringInput}
+              value={connectionString()}
+              onValue={value => {
+                setConnectionString(value);
+                setParseNote(null);
+              }}
+              onKeyDown={event => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  fillFromConnectionString();
+                }
+              }}
+              placeholder="postgres://user:password@host:5432/database"
+            />
+            <Button variant="subtle" onClick={fillFromConnectionString} disabled={connectionString().trim() === ""}>
+              <Wand2 size={14} />
+              Fill in
+            </Button>
+          </div>
+          <Show
+            when={parseNote()}
+            fallback={<span class={styles.ParseHint}>Optional. Fills the fields below from a URL like mysql://, postgres:// or jdbc:, a libpq key=value string or a SQLite file path.</span>}
+          >
+            {note => (
+              <span class={styles.ParseNote} classList={{ [styles.Failed]: !note().ok }}>
+                {note().ok ? <CircleCheck size={13} /> : <CircleAlert size={13} />}
+                <span>{note().message}</span>
+              </span>
+            )}
+          </Show>
+        </Field>
+
         <div class={styles.Divider} />
 
         {withDatabaseModule(draft, (module, options) => (
-          <module.ConnectionForm options={options} update={updateOptions} secrets={secretEditor} />
+          <module.ConnectionForm options={options} update={updateOptions} secrets={secretEditor} onConnectionString={pastedIntoHost} />
         ))}
       </div>
     </Modal>

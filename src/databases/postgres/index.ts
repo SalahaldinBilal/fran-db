@@ -5,6 +5,7 @@ import { DefaultKind } from "@core/helpers/defaultValues";
 import { DatabaseModule } from "../types";
 import { sqlFormatter } from "../shared/format";
 import PostgresConnectionForm from "./PostgresConnectionForm";
+import { parsePostgresConnectionString } from "./connectionString";
 
 function quoteIdentifier(name: string): string {
   return `"${name.replaceAll("\"", "\"\"")}"`;
@@ -110,6 +111,7 @@ const postgresModule: DatabaseModule<"postgres"> = {
     initSql: "",
   }),
   ConnectionForm: PostgresConnectionForm,
+  parseConnectionString: parsePostgresConnectionString,
   describeTarget,
   suggestName,
   methodLabel,

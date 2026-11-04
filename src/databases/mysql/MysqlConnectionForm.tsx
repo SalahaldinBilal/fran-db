@@ -104,6 +104,9 @@ function MysqlConnectionForm(props: ConnectionFormProps<MysqlOptions>) {
                       <Input
                         value={props.options.host}
                         onValue={value => props.update(options => { options.host = value; })}
+                        onPaste={event => {
+                          if (props.onConnectionString?.(event.clipboardData?.getData("text") ?? "")) event.preventDefault();
+                        }}
                         placeholder="127.0.0.1"
                       />
                     </Field>
