@@ -38,6 +38,10 @@
   &.Numeric {
     align-items: flex-end;
   }
+
+  &.ColumnSelected {
+    background-color: var(--accent-soft);
+  }
 }
 
 .ColumnName {
@@ -117,6 +121,11 @@
   font-family: var(--font-mono);
   font-size: var(--font-xs);
   user-select: none;
+
+  &.RowSelected {
+    background-image: linear-gradient(var(--accent-soft), var(--accent-soft));
+    color: var(--accent-strong);
+  }
 }
 
 .HeaderCorner {
@@ -153,6 +162,10 @@
 
   &.Edited {
     background-color: var(--value-edited);
+  }
+
+  &.InSelection {
+    background-color: var(--accent-soft);
   }
 
   &.Selected {

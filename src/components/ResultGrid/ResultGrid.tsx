@@ -1,11 +1,15 @@
 import styles from "./ResultGrid.module.scss";
 import { For, Index, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
-import { Ban, Braces, Copy, KeyRound, Maximize2, Rows3, TextCursorInput, Trash2, Undo2 } from "lucide-solid";
+import { Ban, Braces, ClipboardList, Copy, KeyRound, Maximize2, Rows3, TextCursorInput, Trash2, Undo2 } from "lucide-solid";
 import { ColumnMeta, ValueCategory } from "@core/types";
 import useContextMenuState, { MenuItem } from "@core/states/contextMenuState";
 import useSettingsState, { CellEditMode } from "@core/states/settingsState";
+import useToastState from "@core/states/toastState";
 import { copyText } from "@core/helpers/clipboard";
+import { CopyFormat, formatRows } from "@core/helpers/copyRows";
+import { safeInvoke } from "@core/helpers/safeInvoke";
+import { plural } from "@core/helpers";
 import { looksLikeJson } from "@core/helpers/values";
 import ValueViewer from "./ValueViewer";
 import { tooltip } from "../Tooltip/Tooltip";
@@ -20,6 +24,8 @@ const MAX_COLUMN_WIDTH = 380;
 const SAMPLE_ROWS = 200;
 const DISPLAY_LIMIT = 300;
 const INLINE_EDIT_LIMIT = 200;
+const DRAG_EDGE = 24;
+const DRAG_MAX_SPEED = 40;
 
 const NUMERIC: ReadonlySet<ValueCategory> = new Set(["integer", "decimal", "float", "bit"]);
 
@@ -47,6 +53,8 @@ export type ResultGridProps = {
 
 type Cell = { row: number, column: number };
 type ViewTarget = Cell & { draft?: string };
+type SelectionBox = { top: number, bottom: number, left: number, right: number };
+type CopyTarget = { rows: number[], columns: number[] };
 type TextPart = { text: string, match: boolean };
 
 function measureColumn(column: ColumnMeta, index: number, rows: ResultGridProps["rows"]): number {
@@ -100,7 +108,13 @@ function ResultGrid(props: ResultGridProps) {
   const [scrollTop, setScrollTop] = createSignal(0);
   const [viewportHeight, setViewportHeight] = createSignal(400);
   const [viewportWidth, setViewportWidth] = createSignal(0);
+  const { pushError } = useToastState;
   const [selected, setSelected] = createSignal<Cell | null>(null);
+  // The selection runs from `anchor` to `selected`. Whole-row mode adds the rows picked with Ctrl, and has no anchor when only those count.
+  const [anchor, setAnchor] = createSignal<Cell | null>(null);
+  const [wholeRows, setWholeRows] = createSignal(false);
+  const [picked, setPicked] = createSignal<ReadonlySet<number>>(new Set());
+  const [dragging, setDragging] = createSignal<"cells" | "rows" | null>(null);
   const [inlineEdit, setInlineEdit] = createSignal<Cell | null>(null);
   const [viewing, setViewing] = createSignal<ViewTarget | null>(null);
   const [widths, setWidths] = createStore<number[]>([]);
@@ -109,6 +123,7 @@ function ResultGrid(props: ResultGridProps) {
   createEffect(on(() => props.columns, columns => {
     setWidths(columns.map((column, index) => measureColumn(column, index, props.rows)));
     setSelected(null);
+    clearRange();
     setInlineEdit(null);
     viewport?.scrollTo({ top: 0, left: 0 });
     setScrollTop(0);
@@ -120,8 +135,67 @@ function ResultGrid(props: ResultGridProps) {
       setViewportWidth(viewport.clientWidth);
     });
     observer.observe(viewport);
-    onCleanup(() => observer.disconnect());
+    window.addEventListener("mousemove", trackDrag);
+    window.addEventListener("mouseup", stopDragging);
+    onCleanup(() => {
+      observer.disconnect();
+      window.removeEventListener("mousemove", trackDrag);
+      window.removeEventListener("mouseup", stopDragging);
+      stopDragging();
+    });
   });
+
+  let pointer: { x: number, y: number } | null = null;
+  let dragFrame = 0;
+
+  function trackDrag(event: MouseEvent) {
+    if (!dragging()) return;
+    pointer = { x: event.clientX, y: event.clientY };
+    if (!dragFrame) dragFrame = requestAnimationFrame(dragStep);
+  }
+
+  function stopDragging() {
+    setDragging(null);
+    pointer = null;
+    cancelAnimationFrame(dragFrame);
+    dragFrame = 0;
+  }
+
+  function cellAtPoint(x: number, y: number): Cell | null {
+    if (rowCount() === 0) return null;
+    const rect = viewport.getBoundingClientRect();
+    const position = Math.floor((y - rect.top + viewport.scrollTop - HEADER_HEIGHT) / ROW_HEIGHT);
+    const row = rowAt(Math.min(rowCount() - 1, Math.max(0, position)));
+    let offset = x - rect.left + viewport.scrollLeft - rowNumberWidth();
+    let column = 0;
+    while (column < props.columns.length - 1 && offset >= widths[column]) {
+      offset -= widths[column];
+      column++;
+    }
+    return { row, column };
+  }
+
+  // How far past the edge zone the pointer is, so scrolling speeds up the further out it goes.
+  function edgeOverflow(at: number, start: number, end: number): number {
+    if (at < start + DRAG_EDGE) return at - (start + DRAG_EDGE);
+    if (at > end - DRAG_EDGE) return at - (end - DRAG_EDGE);
+    return 0;
+  }
+
+  function dragStep() {
+    dragFrame = 0;
+    const kind = dragging();
+    if (!kind || !pointer) return;
+    const rect = viewport.getBoundingClientRect();
+    const overY = edgeOverflow(pointer.y, rect.top + HEADER_HEIGHT, rect.bottom);
+    const overX = kind === "cells" ? edgeOverflow(pointer.x, rect.left + rowNumberWidth(), rect.right) : 0;
+    const speed = (over: number) => Math.sign(over) * Math.min(DRAG_MAX_SPEED, Math.abs(over) / 2);
+    if (overX !== 0 || overY !== 0) viewport.scrollBy(speed(overX), speed(overY));
+
+    const cell = cellAtPoint(pointer.x, pointer.y);
+    if (cell) setSelected(kind === "rows" ? { row: cell.row, column: selected()?.column ?? 0 } : cell);
+    if (overX !== 0 || overY !== 0) dragFrame = requestAnimationFrame(dragStep);
+  }
 
   const rowNumberWidth = createMemo(() => {
     const largest = (props.rowOffset ?? 0) + props.rows.length;
@@ -166,6 +240,140 @@ function ResultGrid(props: ResultGridProps) {
     return rows;
   });
 
+  function isShown(row: number): boolean {
+    const shown = positions();
+    return row < props.rows.length && (shown === null || shown.has(row));
+  }
+
+  const range = createMemo<SelectionBox | null>(() => {
+    const focus = selected();
+    if (!focus || (wholeRows() && anchor() === null)) return null;
+    const start = anchor() ?? focus;
+    const from = positionOf(start.row);
+    const to = positionOf(focus.row);
+    const allColumns = wholeRows();
+    return {
+      top: Math.min(from, to),
+      bottom: Math.max(from, to),
+      left: allColumns ? 0 : Math.min(start.column, focus.column),
+      right: allColumns ? props.columns.length - 1 : Math.max(start.column, focus.column),
+    };
+  });
+
+  const isMulti = createMemo(() => {
+    if (wholeRows()) return true;
+    const current = range();
+    return current !== null && (current.top !== current.bottom || current.left !== current.right);
+  });
+
+  function rowInRange(row: number): boolean {
+    const current = range();
+    if (!current || !isShown(row)) return false;
+    const position = positionOf(row);
+    return position >= current.top && position <= current.bottom;
+  }
+
+  function rowSelected(row: number): boolean {
+    return wholeRows() && (picked().has(row) || rowInRange(row));
+  }
+
+  function cellInSelection(cell: Cell): boolean {
+    if (wholeRows()) return rowSelected(cell.row);
+    const current = range();
+    return current !== null && rowInRange(cell.row) && cell.column >= current.left && cell.column <= current.right;
+  }
+
+  function columnSelected(column: number): boolean {
+    const current = range();
+    return !wholeRows() && current !== null && rowCount() > 1
+      && current.top === 0 && current.bottom === rowCount() - 1
+      && column >= current.left && column <= current.right;
+  }
+
+  function selectionRows(): number[] {
+    const rows = new Set<number>();
+    const current = range();
+    if (current) {
+      for (let position = current.top; position <= current.bottom; position++) rows.add(rowAt(position));
+    }
+    if (wholeRows()) picked().forEach(row => rows.add(row));
+    return [...rows].filter(isShown).sort((a, b) => positionOf(a) - positionOf(b));
+  }
+
+  function selectionColumns(): number[] {
+    const current = range();
+    const left = current && !wholeRows() ? current.left : 0;
+    const right = current && !wholeRows() ? current.right : props.columns.length - 1;
+    const columns: number[] = [];
+    for (let column = left; column <= right; column++) columns.push(column);
+    return columns;
+  }
+
+  function clearRange() {
+    setAnchor(null);
+    setWholeRows(false);
+    setPicked(new Set<number>());
+  }
+
+  function selectCell(cell: Cell) {
+    clearRange();
+    setAnchor(cell);
+    setSelected(cell);
+  }
+
+  function extendTo(cell: Cell) {
+    if (!anchor()) setAnchor(selected() ?? cell);
+    setSelected(cell);
+  }
+
+  function selectRow(row: number) {
+    const cell = { row, column: selected()?.column ?? 0 };
+    clearRange();
+    setWholeRows(true);
+    setAnchor(cell);
+    setSelected(cell);
+  }
+
+  function toggleRow(row: number) {
+    const rows = new Set(wholeRows() ? selectionRows() : []);
+    if (rows.has(row)) rows.delete(row);
+    else rows.add(row);
+    setWholeRows(true);
+    setAnchor(null);
+    setPicked(rows);
+    setSelected({ row, column: selected()?.column ?? 0 });
+  }
+
+  function selectAll() {
+    if (rowCount() === 0) return;
+    const column = selected()?.column ?? 0;
+    clearRange();
+    setWholeRows(true);
+    setAnchor({ row: rowAt(0), column });
+    setSelected({ row: rowAt(rowCount() - 1), column });
+  }
+
+  function selectColumn(column: number, extend: boolean) {
+    if (rowCount() === 0) return;
+    const top = rowAt(0);
+    const bottom = rowAt(rowCount() - 1);
+    const start = extend && !wholeRows() ? anchor()?.column ?? column : column;
+    clearRange();
+    setAnchor({ row: top, column: start });
+    setSelected({ row: bottom, column });
+  }
+
+  // Keeps focus on the grid while cancelling the text selection a press would start.
+  function takeFocus(event: MouseEvent) {
+    event.preventDefault();
+    viewport.focus({ preventScroll: true });
+  }
+
+  createEffect(on(shownRows, () => {
+    const current = selected();
+    if (current) selectCell(current);
+  }, { defer: true }));
+
   function cellValue(cell: Cell): string | null {
     return props.rows[cell.row]?.[cell.column] ?? null;
   }
@@ -189,7 +397,7 @@ function ResultGrid(props: ResultGridProps) {
 
   function openViewer(cell: Cell, draft?: string) {
     setInlineEdit(null);
-    setSelected({ row: cell.row, column: cell.column });
+    selectCell({ row: cell.row, column: cell.column });
     const changed = draft !== undefined && draft !== (cellValue(cell) ?? "");
     setViewing({ row: cell.row, column: cell.column, draft: changed ? draft : undefined });
   }
@@ -210,8 +418,55 @@ function ResultGrid(props: ResultGridProps) {
     else openViewer(cell);
   }
 
-  function copyRow(row: number) {
-    copyText(props.rows[row].map(value => value ?? "NULL").join("\t"), "row");
+  const insertTarget = createMemo(() => {
+    const first = props.columns[0];
+    if (!props.sessionId || !first?.database || !first.table) return null;
+    const oneTable = props.columns.every(column => column.sourceName && column.database === first.database && column.table === first.table);
+    return oneTable ? { sessionId: props.sessionId, database: first.database, table: first.table } : null;
+  });
+
+  // A single cell copies on its own with Ctrl+C, but every other copy of it takes its whole row.
+  function copyTarget(): CopyTarget {
+    const rows = selectionRows();
+    if (isMulti() && rows.length > 0) return { rows, columns: selectionColumns() };
+    const focus = selected();
+    return focus ? { rows: [focus.row], columns: props.columns.map((_, index) => index) } : { rows: [], columns: [] };
+  }
+
+  function targetValues(target: CopyTarget): Array<Array<string | null>> {
+    return target.rows.map(row => target.columns.map(column => props.rows[row]?.[column] ?? null));
+  }
+
+  function copyRows(format: CopyFormat, headers = false) {
+    const target = copyTarget();
+    if (target.rows.length === 0) return;
+    const columns = target.columns.map(index => props.columns[index]);
+    copyText(formatRows(format, columns, targetValues(target), headers), plural(target.rows.length, "row"));
+  }
+
+  async function copyAsInsert() {
+    const table = insertTarget();
+    const target = copyTarget();
+    if (!table || target.rows.length === 0) return;
+    try {
+      const statements = await safeInvoke("get_insert_sql", {
+        ...table,
+        columns: target.columns.map(index => props.columns[index]),
+        rows: targetValues(target),
+      });
+      copyText(statements.map(statement => `${statement};`).join("\n"), `${plural(target.rows.length, "row")} as INSERT`);
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  function copyShortcut(withHeaders: boolean) {
+    const current = selected();
+    if (!isMulti() && !withHeaders) {
+      if (current) copyText(cellValue(current) ?? "NULL", "value");
+      return;
+    }
+    copyRows("tsv", withHeaders);
   }
 
   function ensureVisible(cell: Cell) {
@@ -221,8 +476,9 @@ function ResultGrid(props: ResultGridProps) {
     else if (top + ROW_HEIGHT > viewport.scrollTop + visibleHeight) viewport.scrollTop = top + ROW_HEIGHT - visibleHeight;
   }
 
-  function move(cell: Cell) {
-    setSelected(cell);
+  function move(cell: Cell, extend = false) {
+    if (extend) extendTo(cell);
+    else selectCell(cell);
     ensureVisible(cell);
   }
 
@@ -248,12 +504,19 @@ function ResultGrid(props: ResultGridProps) {
       ArrowRight: { row: current.row, column: Math.min(columns - 1, current.column + 1) },
     };
 
+    const command = event.ctrlKey || event.metaKey;
     if (event.key in moves) {
       event.preventDefault();
-      move(moves[event.key]);
-    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
+      move(moves[event.key], event.shiftKey);
+    } else if (command && event.key.toLowerCase() === "c") {
       event.preventDefault();
-      copyText(cellValue(current) ?? "NULL", "value");
+      copyShortcut(event.shiftKey);
+    } else if (command && event.key.toLowerCase() === "a") {
+      event.preventDefault();
+      selectAll();
+    } else if (event.key === "Escape" && isMulti()) {
+      event.preventDefault();
+      selectCell(current);
     } else if (event.key === "Enter" && event.shiftKey) {
       event.preventDefault();
       startEditing(current, otherEditMode());
@@ -299,12 +562,47 @@ function ResultGrid(props: ResultGridProps) {
     window.addEventListener("mouseup", onUp);
   }
 
+  function copyAsItem(label: string): MenuItem {
+    const table = insertTarget();
+    return {
+      label,
+      icon: ClipboardList,
+      children: [
+        { label: "CSV", onSelect: () => copyRows("csv") },
+        { label: "JSON", onSelect: () => copyRows("json") },
+        { label: "Markdown table", onSelect: () => copyRows("markdown") },
+        {
+          label: "SQL INSERT",
+          disabled: table === null,
+          hint: table === null ? "Needs columns from one table" : undefined,
+          onSelect: copyAsInsert,
+        },
+      ],
+    };
+  }
+
+  function selectionCopyItems(): MenuItem[] {
+    const count = selectionRows().length;
+    const what = wholeRows() ? plural(count, "row") : "selection";
+    return [
+      { label: `Copy ${what}`, icon: Copy, hint: "Ctrl+C", onSelect: () => copyRows("tsv") },
+      { label: "Copy with headers", icon: Rows3, hint: "Ctrl+Shift+C", onSelect: () => copyRows("tsv", true) },
+      copyAsItem("Copy as"),
+    ];
+  }
+
   function cellMenu(cell: Cell): MenuItem[] {
+    if (isMulti()) {
+      const actions = rowActions(selectionRows());
+      return actions.length > 0 ? [...selectionCopyItems(), { separator: true }, ...actions] : selectionCopyItems();
+    }
+
     const value = cellValue(cell);
     const editable = canEdit(cell);
     const items: MenuItem[] = [
       { label: "Copy value", icon: Copy, hint: "Ctrl+C", onSelect: () => copyText(value ?? "NULL", "value") },
-      { label: "Copy row", icon: Rows3, onSelect: () => copyRow(cell.row) },
+      { label: "Copy row", icon: Rows3, onSelect: () => copyRows("tsv") },
+      copyAsItem("Copy row as"),
     ];
     if (!editable) {
       items.push({ label: "Open value", icon: value !== null && looksLikeJson(value) ? Braces : Maximize2, hint: "Enter", onSelect: () => openViewer(cell) });
@@ -330,21 +628,55 @@ function ResultGrid(props: ResultGridProps) {
       items.push({ separator: true });
     }
 
-    return [...items, ...rowActions(cell.row)];
+    return [...items, ...rowActions([cell.row])];
   }
 
-  function rowActions(row: number): MenuItem[] {
+  function rowActions(rows: number[]): MenuItem[] {
     const editing = props.editing;
-    if (!editing) return [];
-    return editing.rowState(row) === "deleted"
-      ? [{ label: "Restore row", icon: Undo2, onSelect: () => editing.restoreRow(row) }]
-      : [{ label: "Delete row", icon: Trash2, danger: true, onSelect: () => editing.deleteRow(row) }];
+    if (!editing || rows.length === 0) return [];
+    const deleted = rows.filter(row => editing.rowState(row) === "deleted");
+    const live = rows.filter(row => editing.rowState(row) !== "deleted");
+    const items: MenuItem[] = [];
+    if (deleted.length > 0) {
+      items.push({
+        label: deleted.length === 1 ? "Restore row" : `Restore ${plural(deleted.length, "row")}`,
+        icon: Undo2,
+        onSelect: () => deleted.forEach(row => editing.restoreRow(row)),
+      });
+    }
+    if (live.length > 0) {
+      items.push({
+        label: live.length === 1 ? "Delete row" : `Delete ${plural(live.length, "row")}`,
+        icon: Trash2,
+        danger: true,
+        onSelect: () => deleteRows(live),
+      });
+    }
+    return items;
+  }
+
+  // New rows are removed from the list outright, so the highest go first to keep the other indexes valid.
+  function deleteRows(rows: number[]) {
+    const editing = props.editing;
+    if (!editing) return;
+    [...rows].sort((a, b) => b - a).forEach(row => editing.deleteRow(row));
+    const current = selected();
+    const last = props.rows.length - 1;
+    if (current && current.row > last) {
+      if (last >= 0) selectCell({ row: last, column: current.column });
+      else {
+        clearRange();
+        setSelected(null);
+      }
+    } else if (current) {
+      selectCell(current);
+    }
   }
 
   function rowMenu(row: number): MenuItem[] {
-    const items: MenuItem[] = [{ label: "Copy row", icon: Rows3, onSelect: () => copyRow(row) }];
-    const actions = rowActions(row);
-    return actions.length > 0 ? [...items, { separator: true }, ...actions] : items;
+    if (!rowSelected(row)) selectRow(row);
+    const actions = rowActions(selectionRows());
+    return actions.length > 0 ? [...selectionCopyItems(), { separator: true }, ...actions] : selectionCopyItems();
   }
 
   return (
@@ -359,21 +691,29 @@ function ResultGrid(props: ResultGridProps) {
         <div class={styles.Header} style={{ height: `${HEADER_HEIGHT}px`, width: `${totalWidth()}px` }}>
           <div class={`${styles.RowNumber} ${styles.HeaderCorner}`} style={{ width: `${rowNumberWidth()}px` }} />
           <For each={props.columns}>
-            {(column, index) => (
-              <div
-                ref={element => tooltip(element, () => `${column.name} ${column.typeName}${column.nullable ? "" : " NOT NULL"}${column.table ? ` (${column.table})` : ""}`)}
-                class={styles.HeaderCell}
-                classList={{ [styles.Numeric]: NUMERIC.has(column.category) }}
-                style={{ width: `${widths[index()]}px` }}
-              >
-                <div class={styles.ColumnName}>
-                  <Show when={column.primaryKey}><KeyRound size={12} class={styles.KeyIcon} /></Show>
-                  <span>{column.name}</span>
+            {(column, index) => {
+              const isColumnSelected = createMemo(() => columnSelected(index()));
+              return (
+                <div
+                  ref={element => tooltip(element, () => `${column.name} ${column.typeName}${column.nullable ? "" : " NOT NULL"}${column.table ? ` (${column.table})` : ""}`)}
+                  class={styles.HeaderCell}
+                  classList={{ [styles.Numeric]: NUMERIC.has(column.category), [styles.ColumnSelected]: isColumnSelected() }}
+                  style={{ width: `${widths[index()]}px` }}
+                  onMouseDown={event => {
+                    if (event.button !== 0) return;
+                    takeFocus(event);
+                    selectColumn(index(), event.shiftKey);
+                  }}
+                >
+                  <div class={styles.ColumnName}>
+                    <Show when={column.primaryKey}><KeyRound size={12} class={styles.KeyIcon} /></Show>
+                    <span>{column.name}</span>
+                  </div>
+                  <div class={styles.ColumnType}>{column.typeName}</div>
+                  <div class={styles.Resizer} onMouseDown={event => startResize(event, index())} />
                 </div>
-                <div class={styles.ColumnType}>{column.typeName}</div>
-                <div class={styles.Resizer} onMouseDown={event => startResize(event, index())} />
-              </div>
-            )}
+              );
+            }}
           </For>
         </div>
 
@@ -387,6 +727,7 @@ function ResultGrid(props: ResultGridProps) {
           {row => {
             const state = createMemo(() => props.editing?.rowState(row) ?? null);
             const position = createMemo(() => positionOf(row));
+            const isRowSelected = createMemo(() => rowSelected(row));
 
             return (
               <div
@@ -400,7 +741,21 @@ function ResultGrid(props: ResultGridProps) {
               >
                 <div
                   class={styles.RowNumber}
+                  classList={{ [styles.RowSelected]: isRowSelected() }}
                   style={{ width: `${rowNumberWidth()}px` }}
+                  onMouseDown={event => {
+                    if (event.button !== 0) return;
+                    takeFocus(event);
+                    if (event.ctrlKey || event.metaKey) {
+                      toggleRow(row);
+                    } else if (event.shiftKey) {
+                      setWholeRows(true);
+                      extendTo({ row, column: selected()?.column ?? 0 });
+                    } else {
+                      selectRow(row);
+                      setDragging("rows");
+                    }
+                  }}
                   onContextMenu={event => openContextMenu(event, rowMenu(row))}
                 >
                   {state() === "new" ? "+" : (props.rowOffset ?? 0) + row + 1}
@@ -409,6 +764,7 @@ function ResultGrid(props: ResultGridProps) {
                   {(column, columnIndex) => {
                     const value = createMemo(() => props.rows[row]?.[columnIndex] ?? null);
                     const isSelected = createMemo(() => selected()?.row === row && selected()?.column === columnIndex);
+                    const inSelection = createMemo(() => isMulti() && cellInSelection({ row, column: columnIndex }));
                     const isEditing = createMemo(() => inlineEdit()?.row === row && inlineEdit()?.column === columnIndex);
                     const edited = createMemo(() => props.editing?.isCellEdited(row, columnIndex) ?? false);
                     const usesDefault = createMemo(() => props.editing?.usesDefault(row, columnIndex) ?? false);
@@ -418,6 +774,7 @@ function ResultGrid(props: ResultGridProps) {
                         class={styles.Cell}
                         classList={{
                           [styles.Selected]: isSelected(),
+                          [styles.InSelection]: inSelection(),
                           [styles.Edited]: edited(),
                           [styles.Numeric]: NUMERIC.has(column().category),
                           [styles.Binary]: column().category === "binary" || column().category === "spatial",
@@ -426,14 +783,20 @@ function ResultGrid(props: ResultGridProps) {
                         style={{ width: `${widths[columnIndex]}px` }}
                         onMouseDown={event => {
                           if (event.button !== 0) return;
-                          setSelected({ row, column: columnIndex });
-                          // Repeat clicks would otherwise select the word or line under the pointer.
-                          if (event.detail > 1) event.preventDefault();
-                          if (event.detail === 2) startEditing({ row, column: columnIndex });
+                          const cell = { row, column: columnIndex };
+                          takeFocus(event);
+                          if (event.shiftKey) {
+                            extendTo(cell);
+                          } else {
+                            selectCell(cell);
+                            setDragging("cells");
+                          }
+                          if (event.detail === 2) startEditing(cell);
                         }}
                         onContextMenu={event => {
-                          setSelected({ row, column: columnIndex });
-                          openContextMenu(event, cellMenu({ row, column: columnIndex }));
+                          const cell = { row, column: columnIndex };
+                          if (!isMulti() || !cellInSelection(cell)) selectCell(cell);
+                          openContextMenu(event, cellMenu(cell));
                         }}
                       >
                         <Show

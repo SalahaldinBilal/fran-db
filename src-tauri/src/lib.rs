@@ -101,6 +101,7 @@ pub fn run() {
             db::commands::get_object_sql,
             db::commands::get_database_sql,
             db::commands::preview_row_changes,
+            db::commands::get_insert_sql,
             db::commands::execute_batch,
             db::commands::get_table_design,
             db::commands::get_design_options,

@@ -117,4 +117,4 @@ Saved queries and tabs are separate. Opening a saved query puts a copy of its SQ
 - Rust structs crossing IPC use `#[serde(rename_all = "camelCase")]`. On tagged enums, struct variants with multi-word fields need their own `#[serde(rename_all = "camelCase")]`, the enum-level one only renames variant tags.
 - Every derived reactive value in a Solid component is a `createMemo`, not a plain arrow function. This includes conditional props passed to components (`editing={cond ? a : b}`): Solid compiles those into a getter that creates a memo on each read, and reading it from an event handler logs "computations created outside a `createRoot`".
 - Multi-line functions use `function` declarations, not `const` arrows.
-- Application code never creates or alters schema in any datastore.
+- The desktop app never creates or alters schema in any datastore on its own. Schema changes only happen as SQL the user reviews and runs. This doesn't apply to the sync server, which runs its own migrations.

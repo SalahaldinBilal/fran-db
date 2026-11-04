@@ -272,6 +272,36 @@ pub fn row_changes_sql(
     Ok(statements)
 }
 
+pub fn insert_rows_sql(
+    dialect: Dialect,
+    database: &str,
+    table: &str,
+    columns: &[ColumnMeta],
+    rows: &[Vec<Option<String>>],
+) -> AppResult<Vec<String>> {
+    let target = qualified(database, table);
+    let names = columns
+        .iter()
+        .map(source_identifier)
+        .collect::<AppResult<Vec<_>>>()?
+        .join(", ");
+    let tuples: Vec<String> = rows
+        .iter()
+        .map(|row| {
+            let literals: Vec<String> = columns
+                .iter()
+                .enumerate()
+                .map(|(index, meta)| dialect.value_literal(row.get(index).and_then(|value| value.as_deref()), meta.category))
+                .collect();
+            format!("({})", literals.join(", "))
+        })
+        .collect();
+    Ok(tuples
+        .chunks(MAX_ROWS_PER_STATEMENT)
+        .map(|chunk| format!("INSERT INTO {target} ({names}) VALUES {}", chunk.join(", ")))
+        .collect())
+}
+
 const MAX_ROWS_PER_STATEMENT: usize = 500;
 
 struct KeyedRow {
@@ -296,6 +326,40 @@ mod tests {
             source_name: Some(name.to_string()),
             has_choices: false,
         }
+    }
+
+    #[test]
+    fn inserts_copied_rows() {
+        let columns = vec![
+            column("id", ValueCategory::Integer, true),
+            column("note", ValueCategory::Text, false),
+            column("data", ValueCategory::Binary, false),
+        ];
+        let rows = vec![
+            vec![Some("1".into()), Some("it's \\ here".into()), Some("0x00ff".into())],
+            vec![Some("2".into()), None, None],
+        ];
+        let statements = insert_rows_sql(Dialect::default(), "db", "t", &columns, &rows).unwrap();
+        assert_eq!(
+            statements,
+            vec!["INSERT INTO `db`.`t` (`id`, `note`, `data`) VALUES (1, 'it''s \\\\ here', X'00ff'), (2, NULL, NULL)"],
+        );
+    }
+
+    #[test]
+    fn splits_large_copies() {
+        let columns = vec![column("id", ValueCategory::Integer, true)];
+        let rows: Vec<Vec<Option<String>>> = (0..501).map(|id| vec![Some(id.to_string())]).collect();
+        let statements = insert_rows_sql(Dialect::default(), "db", "t", &columns, &rows).unwrap();
+        assert_eq!(statements.len(), 2);
+        assert!(statements[1].ends_with("VALUES (500)"));
+    }
+
+    #[test]
+    fn refuses_computed_columns_in_copies() {
+        let mut computed = column("total", ValueCategory::Integer, false);
+        computed.source_name = None;
+        assert!(insert_rows_sql(Dialect::default(), "db", "t", &[computed], &[vec![Some("1".into())]]).is_err());
     }
 
     #[test]

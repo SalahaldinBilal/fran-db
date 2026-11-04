@@ -59,6 +59,7 @@ type Commands = {
   "get_object_sql": Command<{ sessionId: string, database: string, name: string, kind: ObjectKind, signature: string | null, template: SqlTemplate }, string>,
   "get_database_sql": Command<{ sessionId: string, database: string, template: SqlTemplate }, string>,
   "preview_row_changes": Command<{ sessionId: string, database: string, table: string, columns: ColumnMeta[], changes: RowChange[] }, string[]>,
+  "get_insert_sql": Command<{ sessionId: string, database: string, table: string, columns: ColumnMeta[], rows: Array<Array<string | null>> }, string[]>,
   "execute_batch": Command<{ sessionId: string, database: string | null, statements: string[], transactional: boolean }, BatchOutcome>,
   "get_table_design": Command<{ sessionId: string, database: string, table: string }, TableDesign>,
   "get_design_options": Command<{ sessionId: string }, DesignOptions>,

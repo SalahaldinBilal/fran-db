@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Results can be selected many rows or cells at a time. Click or drag across row numbers to pick rows, Shift+click for a range, Ctrl+click to add or remove one, drag across cells for a block, click a column header for the whole column, and Ctrl+A for everything. Shift+arrows extend the selection and Esc goes back to one cell.
+- Ctrl+C copies the selection as tab-separated text that pastes into spreadsheets, and Ctrl+Shift+C adds the column names. The right-click menu also copies as CSV, JSON, a Markdown table or SQL INSERT statements. INSERT needs every column to come from one table.
+- Delete row and Restore row work on every selected row at once.
+
 ## [0.1.5] - 2026-11-01
 
 ### Added

@@ -421,6 +421,16 @@ impl DatabaseSession for PostgresSession {
         sqlgen::row_changes_sql(self.dialect(), database, table, columns, changes)
     }
 
+    fn insert_rows_sql(
+        &self,
+        database: &str,
+        table: &str,
+        columns: &[ColumnMeta],
+        rows: &[Vec<Option<String>>],
+    ) -> AppResult<Vec<String>> {
+        sqlgen::insert_rows_sql(self.dialect(), database, table, columns, rows)
+    }
+
     async fn execute_batch(
         &self,
         database: Option<&str>,

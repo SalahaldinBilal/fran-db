@@ -94,6 +94,15 @@ pub trait DatabaseSession: Send + Sync {
         changes: &[RowChange],
     ) -> AppResult<Vec<String>>;
 
+    /// INSERT statements that recreate `rows` in the table, for copying results as SQL.
+    fn insert_rows_sql(
+        &self,
+        database: &str,
+        table: &str,
+        columns: &[ColumnMeta],
+        rows: &[Vec<Option<String>>],
+    ) -> AppResult<Vec<String>>;
+
     /// Runs statements on a fresh connection, in a transaction when asked, stopping at the first failure.
     async fn execute_batch(
         &self,

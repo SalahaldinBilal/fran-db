@@ -217,6 +217,16 @@ impl DatabaseSession for SqliteSession {
         sqlgen::row_changes_sql(database, table, columns, changes)
     }
 
+    fn insert_rows_sql(
+        &self,
+        database: &str,
+        table: &str,
+        columns: &[ColumnMeta],
+        rows: &[Vec<Option<String>>],
+    ) -> AppResult<Vec<String>> {
+        sqlgen::insert_rows_sql(database, table, columns, rows)
+    }
+
     async fn execute_batch(
         &self,
         _database: Option<&str>,

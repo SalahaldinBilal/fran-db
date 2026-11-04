@@ -283,6 +283,21 @@ pub async fn preview_row_changes(
 }
 
 #[tauri::command]
+pub async fn get_insert_sql(
+    sessions: State<'_, SessionManager>,
+    session_id: String,
+    database: String,
+    table: String,
+    columns: Vec<ColumnMeta>,
+    rows: Vec<Vec<Option<String>>>,
+) -> AppResult<Vec<String>> {
+    sessions
+        .get(&session_id)?
+        .session
+        .insert_rows_sql(&database, &table, &columns, &rows)
+}
+
+#[tauri::command]
 pub async fn execute_batch(
     sessions: State<'_, SessionManager>,
     session_id: String,

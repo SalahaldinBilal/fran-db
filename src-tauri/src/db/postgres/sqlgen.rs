@@ -106,6 +106,36 @@ fn source_identifier(meta: &ColumnMeta) -> AppResult<String> {
 
 const MAX_ROWS_PER_STATEMENT: usize = 500;
 
+pub fn insert_rows_sql(
+    dialect: Dialect,
+    schema: &str,
+    table: &str,
+    columns: &[ColumnMeta],
+    rows: &[Vec<Option<String>>],
+) -> AppResult<Vec<String>> {
+    let target = qualified(schema, table);
+    let names = columns
+        .iter()
+        .map(source_identifier)
+        .collect::<AppResult<Vec<_>>>()?
+        .join(", ");
+    let tuples: Vec<String> = rows
+        .iter()
+        .map(|row| {
+            let literals: Vec<String> = columns
+                .iter()
+                .enumerate()
+                .map(|(index, meta)| dialect.value_literal(row.get(index).and_then(|value| value.as_deref()), meta.category))
+                .collect();
+            format!("({})", literals.join(", "))
+        })
+        .collect();
+    Ok(tuples
+        .chunks(MAX_ROWS_PER_STATEMENT)
+        .map(|chunk| format!("INSERT INTO {target} ({names}) VALUES {}", chunk.join(", ")))
+        .collect())
+}
+
 struct KeyedRow {
     key: Vec<Option<String>>,
     tuple: String,
@@ -295,6 +325,24 @@ mod tests {
             source_name: Some(name.to_string()),
             has_choices: false,
         }
+    }
+
+    #[test]
+    fn inserts_copied_rows() {
+        let columns = vec![
+            column("id", ValueCategory::Integer, true),
+            column("note", ValueCategory::Text, false),
+            column("data", ValueCategory::Binary, false),
+        ];
+        let rows = vec![
+            vec![Some("1".into()), Some("it's".into()), Some("0x00ff".into())],
+            vec![Some("2".into()), None, None],
+        ];
+        let statements = insert_rows_sql(Dialect::default(), "public", "t", &columns, &rows).unwrap();
+        assert_eq!(
+            statements,
+            vec![r#"INSERT INTO "public"."t" ("id", "note", "data") VALUES (1, 'it''s', decode('00ff', 'hex')), (2, NULL, NULL)"#],
+        );
     }
 
     #[test]
